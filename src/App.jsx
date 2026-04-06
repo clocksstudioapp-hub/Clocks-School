@@ -171,7 +171,62 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
     </div>
   </div>
 }
+// ═══ PWA INSTALL PROMPT ═══
+function PWAPrompt({ onClose }) {
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+  const isAndroid = /android/i.test(navigator.userAgent)
+  if (!isIOS && !isAndroid) return null
 
+  return (
+    <div style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:480, zIndex:300, padding:'0 16px 16px' }}>
+      <div className="scale-in" style={{ background:'var(--white)', borderRadius:20, padding:20, boxShadow:'0 -4px 32px rgba(109,40,217,0.18)', border:'1.5px solid var(--border)' }}>
+        <button onClick={onClose} style={{ position:'absolute', top:14, right:14, background:'none', border:'none', cursor:'pointer', fontSize:18, color:'var(--text3)' }}>✕</button>
+        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
+          <div style={{ width:48, height:48, borderRadius:14, background:'linear-gradient(135deg,#7C3AED,#A78BFA)', display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
+              <circle cx="15" cy="15" r="10" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5"/>
+              <path d="M15 9v6l4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </div>
+          <div>
+            <div style={{ fontSize:15, fontWeight:700 }}>Instala la app</div>
+            <div style={{ fontSize:12, color:'var(--text3)' }}>Acceso rápido desde tu móvil</div>
+          </div>
+        </div>
+
+        {isIOS && (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {[
+              ['1', '🧭', 'Abre esta página en Safari'],
+              ['2', '⬆️', 'Pulsa el botón Compartir'],
+              ['3', '➕', 'Toca "Añadir a pantalla de inicio"'],
+            ].map(([n, icon, text]) => (
+              <div key={n} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
+                <span style={{ fontSize:18 }}>{icon}</span>
+                <span style={{ fontSize:13, fontWeight:500 }}>{text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {isAndroid && (
+          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+            {[
+              ['1', '⋮', 'Pulsa el menú de Chrome (⋮)'],
+              ['2', '➕', 'Toca "Añadir a pantalla de inicio"'],
+              ['3', '✅', '¡Listo! Ya tienes la app instalada'],
+            ].map(([n, icon, text]) => (
+              <div key={n} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
+                <span style={{ fontSize:18 }}>{icon}</span>
+                <span style={{ fontSize:13, fontWeight:500 }}>{text}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
 function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig}) {
   const [hi,setHi]=useState(0)
@@ -1116,7 +1171,7 @@ function Done({bk,onR}) {
 
 // ═══ MAIN ═════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [user,setUser]=useState(null),[profile,setProfile]=useState(null)
+  const [user,setUser]=useState(null),[profile,setProfile]=useState(null), [showPWA, setShowPWA] = useState(false)
   const [view,setView]=useState('loading')
   const [svcs,setSvcs]=useState([]),[stys,setStys]=useState([])
   const [lb,setLb]=useState(null),[ps,setPs]=useState(null)
@@ -1140,6 +1195,13 @@ export default function App() {
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{
       if(s?.user){setUser(s.user);lP(s.user.id)}else{setUser(null);setProfile(null)}
     })
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+const isAndroid = /android/i.test(navigator.userAgent)
+const alreadyPrompted = localStorage.getItem('pwa-prompted')
+if ((isIOS || isAndroid) && !alreadyPrompted) {
+  setTimeout(() => setShowPWA(true), 3000)
+  localStorage.setItem('pwa-prompted', '1')
+}
     return()=>subscription.unsubscribe()
   },[])
 
@@ -1164,5 +1226,6 @@ export default function App() {
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
     {view==='admin'&&user&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
+    {showPWA && <PWAPrompt onClose={() => setShowPWA(false)} />}
   </div>
 }
