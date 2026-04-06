@@ -175,6 +175,21 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
 function PWAPrompt({ onClose }) {
   const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
   const isAndroid = /android/i.test(navigator.userAgent)
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+
+  useEffect(() => {
+    const handler = e => { e.preventDefault(); setDeferredPrompt(e) }
+    window.addEventListener('beforeinstallprompt', handler)
+    return () => window.removeEventListener('beforeinstallprompt', handler)
+  }, [])
+
+  const install = async () => {
+    if (!deferredPrompt) return
+    deferredPrompt.prompt()
+    await deferredPrompt.userChoice
+    onClose()
+  }
+
   if (!isIOS && !isAndroid) return null
 
   return (
@@ -194,14 +209,17 @@ function PWAPrompt({ onClose }) {
           </div>
         </div>
 
-        {isIOS && (
+        {isAndroid && deferredPrompt && (
+          <Bt full onClick={install}>⬇️ Instalar ahora</Bt>
+        )}
+
+        {isAndroid && !deferredPrompt && (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {[
-              ['1', '🧭', 'Abre esta página en Safari'],
-              ['2', '⬆️', 'Pulsa el botón Compartir'],
-              ['3', '➕', 'Toca "Añadir a pantalla de inicio"'],
-            ].map(([n, icon, text]) => (
-              <div key={n} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
+              ['⋮', 'Pulsa el menú de Chrome (⋮)'],
+              ['➕', 'Toca "Añadir a pantalla de inicio"'],
+            ].map(([icon, text]) => (
+              <div key={text} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
                 <span style={{ fontSize:18 }}>{icon}</span>
                 <span style={{ fontSize:13, fontWeight:500 }}>{text}</span>
               </div>
@@ -209,14 +227,14 @@ function PWAPrompt({ onClose }) {
           </div>
         )}
 
-        {isAndroid && (
+        {isIOS && (
           <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
             {[
-              ['1', '⋮', 'Pulsa el menú de Chrome (⋮)'],
-              ['2', '➕', 'Toca "Añadir a pantalla de inicio"'],
-              ['3', '✅', '¡Listo! Ya tienes la app instalada'],
-            ].map(([n, icon, text]) => (
-              <div key={n} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
+              ['🧭', 'Abre esta página en Safari'],
+              ['⬆️', 'Pulsa el botón Compartir'],
+              ['➕', 'Toca "Añadir a pantalla de inicio"'],
+            ].map(([icon, text]) => (
+              <div key={text} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
                 <span style={{ fontSize:18 }}>{icon}</span>
                 <span style={{ fontSize:13, fontWeight:500 }}>{text}</span>
               </div>
