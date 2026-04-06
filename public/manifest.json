@@ -1,0 +1,12 @@
+{
+  "name": "Clocks Estudio Barbería",
+  "short_name": "Clocks",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#F4F2FF",
+  "theme_color": "#7C3AED",
+  "icons": [
+    { "src": "/images/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/images/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
