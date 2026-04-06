@@ -441,10 +441,6 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
         svc?.duration||30
         ).length))
        const free=maxFree
-          (bd||[]).map(a=>({...a,appointment_date:a.appointment_date,appointment_time:a.appointment_time,end_time:a.end_time,stylist_id:a.stylist_id})),
-          (bl||[]).map(b=>({...b,blocked_date:b.blocked_date,start_time:b.start_time,end_time:b.end_time,stylist_id:b.stylist_id})),
-          svc?.duration||30
-        )
         avail[toK(d)]=free>10?'green':free>5?'yellow':free>0?'orange':'none'
       }
       setMonthAvail(avail)
