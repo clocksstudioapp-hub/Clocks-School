@@ -255,9 +255,9 @@ function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig}) {
   const isOpen=dow>=1&&dow<=5?hr>=9&&hr<20:dow===6?hr>=9&&hr<14:false
   const pop=svcs.filter(s=>s.category==='popular')
   const oth=svcs.filter(s=>s.category!=='popular')
-  const addr=salonConfig?.address||'Fuentes de Ebro, Zaragoza'
-  const phone=salonConfig?.phone||'—'
-  const insta=salonConfig?.instagram||'@clocksschool'
+  const addr=salonConfig?.address||'C/ José Pellicer, 29, Zaragoza'
+  const phone=salonConfig?.phone||'620 96 48 50'
+  const insta=salonConfig?.instagram||'@clocks.school'
 
   return <div style={{paddingBottom:88}}>
     <div style={{position:'relative',height:260,overflow:'hidden',background:'#DDD6FE'}}>
