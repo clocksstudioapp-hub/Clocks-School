@@ -5,7 +5,8 @@
       "schedule": "0 * * * *"
     }
   ],
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/" }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/$1" },
+    { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
