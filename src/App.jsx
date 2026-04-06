@@ -1225,7 +1225,7 @@ export default function App() {
   useEffect(()=>{
     loadPublic()
     supabase.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){setUser(session.user);lP(session.user.id)}
+      if(session?.user){setUser(session.user);lP(session.user.id)subscribePush(session.user.id)}
       setView('landing')
     })
     const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{
