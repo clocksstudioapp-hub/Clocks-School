@@ -477,13 +477,13 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
 
   const pop=svcs.filter(s=>s.category==='popular'),oth=svcs.filter(s=>s.category!=='popular')
   const days=gMD(cY,cM)
-  const can=[!!svc,!!sty,!!(date&&time)][step]
+  const can=[!!svc,!!(date&&time),!!sty][step]
   const navMonth=dir=>{const nm=cM+dir;if(nm<0){setCM(11);setCY(cY-1)}else if(nm>11){setCM(0);setCY(cY+1)}else setCM(nm)}
 
   return <div style={{paddingBottom:110}}>
-    <div style={{padding:'8px 20px 0'}}><BB onClick={step>0?()=>{setStep(step-1);if(step===2)setTime(null)}:onBack}/></div>
+    <div style={{padding:'8px 20px 0'}}><BB onClick={step>0?()=>{setStep(step-1);if(step===2)setSty(null)}:onBack}/></div>
     <div style={{display:'flex',gap:6,padding:'0 20px 18px'}}>
-      {['Servicio','Profesional','Fecha y hora'].map((l,i)=><div key={i} style={{flex:1}}>
+      {['Servicio','Fecha y hora','Profesional'].map((l,i)=><div key={i} style={{flex:1}}>
         <div style={{height:3,borderRadius:2,background:i<=step?'linear-gradient(90deg,var(--purple),var(--purple-l))':'var(--border)',transition:'all .4s',marginBottom:6}}/>
         <span style={{fontSize:10,fontWeight:i<=step?700:400,color:i<=step?'var(--purple)':'var(--text3)',textTransform:'uppercase',letterSpacing:'0.06em'}}>{l}</span>
       </div>)}
