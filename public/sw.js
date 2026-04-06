@@ -1,9 +1,10 @@
 self.addEventListener('fetch', e => {})
 
 self.addEventListener('push', e => {
-  const data = e.data?.json() || {}
+  let data = {}
+  try { data = e.data?.json() } catch { data = { title: 'Clocks', body: e.data?.text() || '' } }
   self.registration.showNotification(data.title || 'Clocks Estudio', {
-    body: data.body || 'Tienes una cita próximamente',
+    body: data.body || '',
     icon: '/images/icon-192.png',
     badge: '/images/icon-192.png',
     data: { url: data.url || '/' }
