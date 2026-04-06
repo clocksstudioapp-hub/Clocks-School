@@ -1,10 +1,4 @@
 {
-  "crons": [
-    {
-      "path": "/api/send-notifications",
-      "schedule": "0 * * * *"
-    }
-  ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/api/$1" },
     { "src": "/(.*)", "dest": "/index.html" }
