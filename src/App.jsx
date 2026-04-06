@@ -1186,7 +1186,25 @@ function Done({bk,onR}) {
     <Bt onClick={onR} style={{marginTop:28}}>Volver al inicio</Bt>
   </div>
 }
+async function subscribePush(userId) {
+  try {
+    const reg = await navigator.serviceWorker.ready
+    const existing = await reg.pushManager.getSubscription()
+    if (existing) return
 
+    const sub = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY
+    })
+
+    await supabase.from('push_subscriptions').upsert({
+      user_id: userId,
+      subscription: sub.toJSON()
+    }, { onConflict: 'user_id' })
+  } catch (e) {
+    console.error('Push subscription error:', e)
+  }
+}
 // ═══ MAIN ═════════════════════════════════════════════════════════════════════
 export default function App() {
   const [user,setUser]=useState(null),[profile,setProfile]=useState(null), [showPWA, setShowPWA] = useState(false)
