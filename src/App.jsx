@@ -331,7 +331,7 @@ function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig}) {
     {tab==='detalles'&&<div style={{padding:16}}>
       {[
         {i:'📍',l:'Dirección',t:addr},
-        {i:'🕐',l:'Horario',t:'Lunes — Viernes: 9:00 – 20:00\nSábado: 9:00 – 14:00\nDomingo: Cerrado'},
+        {i:'🕐',l:'Horario',t:'Lunes — Viernes: 10:00 – 14:00 y 16:00 – 20:00\nSábado y Domingo: Cerrado'},
         {i:'📞',l:'Teléfono',t:phone},
         {i:'📸',l:'Instagram',t:insta}
       ].map((d,idx)=><div key={idx} style={{display:'flex',gap:14,alignItems:'flex-start',padding:'14px 0',borderBottom:idx<3?'1px solid var(--border)':'none'}}>
