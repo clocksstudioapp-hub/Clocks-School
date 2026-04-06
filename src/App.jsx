@@ -1242,7 +1242,7 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
   },[])
 
   const lP=async id=>{const{data}=await supabase.from('profiles').select('*').eq('id',id).single();setProfile(data)}
-  const hL=u=>{setUser(u);lP(u.id);if(ps)setView('booking');else setView('landing')}
+  const hL=u=>{setUser(u);lP(u.id);subscribePush(u.id);if(ps)setView('booking');else setView('landing')}
   const hO=async()=>{await supabase.auth.signOut();setUser(null);setProfile(null);setView('landing')}
   const hR=s=>{setPs(s);if(user)setView('booking');else setView('auth')}
   const isA=profile?.role==='admin'
