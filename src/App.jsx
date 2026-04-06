@@ -423,13 +423,13 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
 
   // Disponibilidad mensual (tiene en cuenta horario fijo)
   useEffect(()=>{
-    if(!sty)return
+    if(!stys.length)return
     ;(async()=>{
       const startDate=`${cY}-${String(cM+1).padStart(2,'0')}-01`
       const endDate=`${cM===11?cY+1:cY}-${String(cM===11?1:cM+2).padStart(2,'0')}-01`
       const [{data:bd},{data:bl}]=await Promise.all([
-        supabase.from('appointments').select('appointment_date,appointment_time,end_time,stylist_id').eq('stylist_id',sty.id).gte('appointment_date',startDate).lt('appointment_date',endDate).eq('status','confirmed'),
-        supabase.from('blocked_slots').select('blocked_date,start_time,end_time,stylist_id').eq('stylist_id',sty.id).gte('blocked_date',startDate).lt('blocked_date',endDate),
+      supabase.from('appointments').select('appointment_date,appointment_time,end_time,stylist_id').gte('appointment_date',startDate).lt('appointment_date',endDate).eq('status','confirmed'),
+      supabase.from('blocked_slots').select('blocked_date,start_time,end_time,stylist_id').gte('blocked_date',startDate).lt('blocked_date',endDate),
       ])
       const avail={},daysInMonth=new Date(cY,cM+1,0).getDate()
       for(let i=1;i<=daysInMonth;i++){
@@ -444,7 +444,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
       }
       setMonthAvail(avail)
     })()
-  },[cM,cY,sty,schedules,svc])
+  },[cM,cY,stys,schedules,svc])
 
   // Barbero favorito
   useEffect(()=>{
@@ -453,18 +453,17 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
 
   // Slots del día seleccionado
   useEffect(()=>{
-    if(!date||!sty){setSlots([]);return}
+    if(!date){setSlots([]);return}
     ;(async()=>{
       setSL(true);const dk=toK(date)
       const [{data:bd},{data:bl}]=await Promise.all([
-        supabase.from('appointments').select('appointment_time,end_time,stylist_id,appointment_date').eq('stylist_id',sty.id).eq('appointment_date',dk).eq('status','confirmed'),
-        supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('stylist_id',sty.id).eq('blocked_date',dk),
-      ])
-      setSlots(getSlotsForDay(date,sty.id,schedules,
-        (bd||[]).map(a=>({...a,blocked_date:dk})),
-        (bl||[]).map(b=>({...b,appointment_date:dk})),
-        svc?.duration||30
-      ))
+        const [{data:bd},{data:bl}]=await Promise.all([
+  supabase.from('appointments').select('appointment_time,end_time,stylist_id,appointment_date').eq('appointment_date',dk).eq('status','confirmed'),
+  supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('blocked_date',dk),
+])
+const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],svc?.duration||30))
+const unionSlots=[...new Set(allSlotSets.flat())].sort()
+setSlots(unionSlots)
       setSL(false)
     })()
   },[date,sty,svc,schedules])
@@ -494,10 +493,11 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
       {oth.length>0&&<><p style={{fontSize:12,fontWeight:700,color:'var(--text3)',letterSpacing:0.5,textTransform:'uppercase',margin:'8px 0 12px'}}>Otros servicios</p>{oth.map((s,i)=><SvcCard key={s.id} s={s} sel={svc?.id===s.id} onClick={()=>setSvc(s)} i={i}/>)}</>}
     </div>}
 
-    {step===1&&<div style={{background:'var(--white)',padding:20}}>
+    {step===2&&<div style={{background:'var(--white)',padding:20}}>
       <h2 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Elige profesional</h2>
       <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:6}}>
-        {stys.map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
+        const availStys=time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,[],[],svc?.duration||30).includes(time)):stys
+        {availStys.map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
           <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(124,58,237,0.32)':'none'}}>
             {s.photo_url?<img src={s.photo_url} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:s.name[0]}
           </div>
@@ -507,7 +507,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
       </div>
     </div>}
 
-    {step===2&&<div style={{padding:'0 16px'}}>
+    {step===1&&<div style={{padding:'0 16px'}}>
       <div style={{background:'var(--white)',borderRadius:18,border:'1.5px solid var(--border)',padding:16,marginBottom:12,boxShadow:'var(--shadow)'}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
           <span style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>{MO[cM]} {cY}</span>
