@@ -1,12 +1,11 @@
 {
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/$1" },
-    { "source": "/(.*)", "destination": "/" }
-  ],
   "crons": [
     {
       "path": "/api/send-notifications",
       "schedule": "0 * * * *"
     }
+  ],
+  "rewrites": [
+    { "source": "/((?!api/).*)", "destination": "/" }
   ]
 }
