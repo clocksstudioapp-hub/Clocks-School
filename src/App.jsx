@@ -47,6 +47,16 @@ const gS = (o='09:00',c='20:00',step=30) => { const s=[]; let [h,m]=o.split(':')
 const gMD = (y,m) => { const f=new Date(y,m,1),l=new Date(y,m+1,0); let s=f.getDay()-1; if(s<0)s=6; const d=[]; for(let i=0;i<s;i++)d.push(null); for(let i=1;i<=l.getDate();i++)d.push(new Date(y,m,i)); return d }
 const svcIcon = n => { const s=(n||'').toLowerCase(); if(s.includes('barba'))return'🪒'; if(s.includes('ceja'))return'✦'; if(s.includes('color')||s.includes('mecha'))return'🎨'; return'✂️' }
 
+// Álvaro tiene slots de 30 min para cortes y barba
+const alvaroEffDur = (sty, svc) => {
+  if(!sty||!svc) return svc?.duration||30
+  const styName=(sty.name||'').toLowerCase()
+  const svcName=(svc.name||'').toLowerCase()
+  const isAlvaro=styName.includes('álvaro')||styName.includes('alvaro')
+  const isQuickSvc=svcName.includes('corte')||svcName.includes('barba')
+  return (isAlvaro&&isQuickSvc) ? 30 : svc.duration
+}
+
 // Dado un barbero y una fecha, calcula sus slots libres teniendo en cuenta
 // su horario semanal fijo (stylist_schedules) + bloqueos puntuales
 const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, svcDuration) => {
@@ -413,6 +423,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
   const [note,setNote]=useState('')
   const [cM,setCM]=useState(new Date().getMonth()),[cY,setCY]=useState(new Date().getFullYear())
   const [slots,setSlots]=useState([]),[sL,setSL]=useState(false),[bk,setBk]=useState(false)
+  const [bookErr,setBookErr]=useState('')
   const [monthAvail,setMonthAvail]=useState({})
   const [dayData,setDayData]=useState({bd:[],bl:[]})
   const [schedules,setSchedules]=useState([])
@@ -439,7 +450,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
         const maxFree=Math.max(...stys.map(s=>getSlotsForDay(d,s.id,schedules,
         (bd||[]),
        (bl||[]),
-        svc?.duration||30
+        alvaroEffDur(s,svc)
         ).length))
        const free=maxFree
         avail[toK(d)]=free>10?'green':free>5?'yellow':free>0?'orange':'none'
@@ -462,7 +473,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
   supabase.from('appointments').select('appointment_time,end_time,stylist_id,appointment_date,user_id').eq('appointment_date',dk).eq('status','confirmed'),
   supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('blocked_date',dk),
 ])
-const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],svc?.duration||30))
+const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc)))
 const userTaken=new Set();(bd||[]).filter(a=>a.user_id===user.id).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
 const unionSlots=[...new Set(allSlotSets.flat())].filter(s=>!userTaken.has(s)).sort()
 setDayData({bd:bd||[],bl:bl||[]})
@@ -472,9 +483,12 @@ setSlots(unionSlots)
   },[date,sty,svc,schedules])
 
   const confirm=async()=>{
-    if(!svc||!sty||!date||!time)return;setBk(true)
-    const {error}=await supabase.from('appointments').insert({user_id:user.id,stylist_id:sty.id,service_id:svc.id,appointment_date:toK(date),appointment_time:time,end_time:aM(time,svc.duration),notes:note||null,status:'confirmed'})
-    setBk(false);if(!error)onDone({service:svc,stylist:sty,date,time})
+    if(!svc||!sty||!date||!time)return;setBk(true);setBookErr('')
+    const dur=alvaroEffDur(sty,svc)
+    const {error}=await supabase.from('appointments').insert({user_id:user.id,stylist_id:sty.id,service_id:svc.id,appointment_date:toK(date),appointment_time:time,end_time:aM(time,dur),notes:note||null,status:'confirmed'})
+    setBk(false)
+    if(error){setBookErr(error.message||'Error al guardar la reserva. Inténtalo de nuevo.')}
+    else{onDone({service:svc,stylist:sty,date,time})}
   }
 
   const pop=svcs.filter(s=>s.category==='popular'),oth=svcs.filter(s=>s.category!=='popular')
@@ -499,7 +513,7 @@ setSlots(unionSlots)
     {step===2&&<div style={{background:'var(--white)',padding:20}}>
       <h2 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Elige profesional</h2>
       <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:6}}>
-        {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,svc?.duration||30).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
+        {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc)).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
           <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(124,58,237,0.32)':'none'}}>
             {s.photo_url?<img src={s.photo_url} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:s.name[0]}
           </div>
@@ -556,9 +570,12 @@ setSlots(unionSlots)
       </div>}
     </div>}
 
-    <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 20px',display:'flex',alignItems:'center',justifyContent:'space-between',zIndex:50}}>
-      {svc?<div><p style={{fontSize:12,color:'var(--text3)'}}>1 servicio · {svc.duration}min</p><p style={{fontSize:20,fontWeight:900,color:'var(--purple)'}}>{Number(svc.price).toFixed(0)}€</p></div>:<div/>}
-      <Bt onClick={step===2?confirm:()=>setStep(step+1)} disabled={!can||bk}>{bk?'Reservando...':step===2?'Confirmar reserva':'Continuar'}</Bt>
+    <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 20px',zIndex:50}}>
+      {bookErr&&<p style={{fontSize:12,color:'var(--red)',marginBottom:8,textAlign:'center',background:'var(--red-bg)',padding:'8px 12px',borderRadius:10,border:'1px solid rgba(239,68,68,0.15)'}}>{bookErr}</p>}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
+        {svc?<div><p style={{fontSize:12,color:'var(--text3)'}}>1 servicio · {alvaroEffDur(sty,svc)}min</p><p style={{fontSize:20,fontWeight:900,color:'var(--purple)'}}>{Number(svc.price).toFixed(0)}€</p></div>:<div/>}
+        <Bt onClick={step===2?confirm:()=>setStep(step+1)} disabled={!can||bk}>{bk?'Reservando...':step===2?'Confirmar reserva':'Continuar'}</Bt>
+      </div>
     </div>
   </div>
 }
