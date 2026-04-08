@@ -866,6 +866,101 @@ function StyModal({data,onSave,onClose}) {
   </Modal>
 }
 
+// ═══ SHARE TAB ════════════════════════════════════════════════════════════════
+function ShareTab() {
+  const url = window.location.origin
+  const [copied, setCopied] = useState(false)
+  const [qrErr, setQrErr] = useState(false)
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(url) } catch { }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2200)
+  }
+
+  const share = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Clocks School · Reserva tu cita', url })
+      } catch {}
+    } else {
+      copy()
+    }
+  }
+
+  return (
+    <div className="anim">
+      {/* Título */}
+      <div style={{marginBottom:28}}>
+        <h2 style={{fontSize:22,fontWeight:900,color:'var(--text)',marginBottom:6}}>Compartir perfil</h2>
+        <p style={{fontSize:14,color:'var(--text2)',lineHeight:1.6}}>
+          Los clientes pueden reservar contigo en cualquier momento con este enlace.
+        </p>
+      </div>
+
+      {/* URL */}
+      <div style={{background:'var(--bg)',border:'1.5px solid var(--border)',borderRadius:14,padding:'14px 16px',marginBottom:16,fontSize:14,color:'var(--text2)',fontWeight:500,wordBreak:'break-all',letterSpacing:0.1}}>
+        {url}
+      </div>
+
+      {/* Botones copiar / compartir */}
+      <div style={{display:'flex',gap:10,marginBottom:32}}>
+        <button onClick={copy} style={{flex:1,padding:'14px 0',borderRadius:14,border:'1.5px solid var(--border2)',background:'var(--white)',cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,color:copied?'var(--green)':'var(--text)',display:'flex',alignItems:'center',justifyContent:'center',gap:8,transition:'all .2s',boxShadow:'var(--shadow)'}}>
+          {copied
+            ? <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>¡Copiado!</>
+            : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</>}
+        </button>
+        <button onClick={share} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 16px rgba(124,58,237,0.38)'}}>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+          Compartir enlace
+        </button>
+      </div>
+
+      {/* Divisor */}
+      <div style={{height:1,background:'var(--border)',marginBottom:28}}/>
+
+      {/* QR */}
+      <div style={{marginBottom:28}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+          <h3 style={{fontSize:16,fontWeight:800,color:'var(--text)'}}>Código QR de tu perfil</h3>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M18 14h.01M14 18h.01M18 18h.01M14 21h.01M21 14v7"/></svg>
+        </div>
+        {!qrErr
+          ? <div style={{display:'flex',justifyContent:'center'}}>
+              <div style={{background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:20,padding:16,boxShadow:'var(--shadow-md)',display:'inline-block'}}>
+                <img
+                  src="/images/qr-code.jpg"
+                  alt="QR Clocks School"
+                  style={{width:200,height:200,objectFit:'contain',display:'block',borderRadius:8}}
+                  onError={()=>setQrErr(true)}
+                />
+              </div>
+            </div>
+          : <div style={{textAlign:'center',padding:'32px 20px',background:'var(--bg)',borderRadius:16,border:'1.5px dashed var(--border2)'}}>
+              <div style={{fontSize:32,marginBottom:8,opacity:0.3}}>📷</div>
+              <p style={{fontSize:13,color:'var(--text3)'}}>Añade <strong>qr-code.jpg</strong> en <code>public/images/</code></p>
+            </div>}
+      </div>
+
+      {/* Tips */}
+      <div style={{display:'flex',flexDirection:'column',gap:16}}>
+        {[
+          {icon:'🌐',title:'Añádelo a tus redes sociales',desc:'Comparte el enlace en tu bio de Instagram, Facebook o Google para que los clientes reserven directamente.'},
+          {icon:'💬',title:'Envíalo por mensaje a tus clientes',desc:'Cuando un cliente quiera reservar, mándale el enlace para que elija el horario que más le convenga.'},
+        ].map(({icon,title,desc})=>
+          <div key={title} style={{display:'flex',gap:14,padding:'14px 16px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:16,boxShadow:'var(--shadow)'}}>
+            <div style={{fontSize:28,flexShrink:0}}>{icon}</div>
+            <div>
+              <div style={{fontSize:14,fontWeight:700,color:'var(--text)',marginBottom:4}}>{title}</div>
+              <div style={{fontSize:13,color:'var(--text2)',lineHeight:1.55}}>{desc}</div>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ═══ ADMIN ════════════════════════════════════════════════════════════════════
 function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
   const LS_KEY='clocks-admin-stylist'
@@ -1007,7 +1102,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
 
     {/* Tabs */}
     <div style={{display:'flex',background:'var(--white)',borderBottom:'1px solid var(--border)',padding:'0 16px',overflowX:'auto'}}>
-      {[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['config','⚙️ Config']].map(([id,l])=>
+      {[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['compartir','🔗 Compartir']].map(([id,l])=>
         <button key={id} onClick={()=>setTab(id)} style={{padding:'13px 12px',fontFamily:'inherit',fontSize:12,fontWeight:600,background:'none',border:'none',cursor:'pointer',color:tab===id?'var(--purple)':'var(--text3)',borderBottom:tab===id?'2.5px solid var(--purple)':'2.5px solid transparent',whiteSpace:'nowrap'}}>{l}</button>
       )}
     </div>
@@ -1151,25 +1246,8 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
         </div>
       </div>}
 
-      {/* ── CONFIG ── */}
-      {tab==='config'&&<div>
-        <div style={{background:'var(--white)',borderRadius:16,border:'1.5px solid var(--border)',padding:16,marginBottom:12,boxShadow:'var(--shadow)'}}>
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
-            <span style={{fontSize:15,fontWeight:700,color:'var(--text)'}}>Datos del salón</span>
-            <Bt small onClick={()=>setShowSalonConfig(true)}>Editar</Bt>
-          </div>
-          {[{l:'Nombre',v:'Clocks School'},{l:'Dirección',v:salonConfig?.address||'—'},{l:'Teléfono',v:salonConfig?.phone||'—'},{l:'Instagram',v:salonConfig?.instagram||'—'}].map(({l,v})=>
-            <div key={l} style={{display:'flex',justifyContent:'space-between',padding:'9px 0',borderBottom:'1px solid var(--border)',fontSize:13}}>
-              <span style={{color:'var(--text3)',fontWeight:500}}>{l}</span>
-              <span style={{fontWeight:600,color:'var(--text)',maxWidth:200,textAlign:'right',wordBreak:'break-word'}}>{v}</span>
-            </div>
-          )}
-        </div>
-        <div style={{background:'var(--purple-bg)',borderRadius:14,padding:'14px 16px',border:'1px solid var(--border)'}}>
-          <div style={{fontSize:13,fontWeight:700,color:'var(--purple)',marginBottom:6}}>💡 Horarios semanales</div>
-          <p style={{fontSize:12,color:'var(--text2)',lineHeight:1.6}}>Ve a <strong>Equipo</strong> y pulsa "Configurar horario semanal" en cada barbero para definir qué días y en qué franjas trabaja. Los clientes solo verán huecos dentro de esos turnos. Puedes añadir bloqueos puntuales encima (vacaciones, bajas) desde el Calendario.</p>
-        </div>
-      </div>}
+      {/* ── COMPARTIR ── */}
+      {tab==='compartir'&&<ShareTab/>}
     </div>
 
     {editSvc&&<SvcModal data={editSvc} onSave={saveSvc} onClose={()=>setEditSvc(null)}/>}
