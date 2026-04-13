@@ -359,9 +359,53 @@ function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig}) {
   </div>
 }
 
+// ═══ RESET PASSWORD ═══════════════════════════════════════════════════════════
+function ResetPasswordForm({onDone}) {
+  const [pw,setPw]=useState(''),[pw2,setPw2]=useState(''),[ld,setLd]=useState(false),[msg,setMsg]=useState(''),[ok,setOk]=useState(false)
+  const submit=async()=>{
+    if(pw.length<6){setMsg('La contraseña debe tener mínimo 6 caracteres');return}
+    if(pw!==pw2){setMsg('Las contraseñas no coinciden');return}
+    setLd(true);setMsg('')
+    const{error}=await supabase.auth.updateUser({password:pw})
+    setLd(false)
+    if(error){setMsg(error.message||'Error al actualizar la contraseña')}
+    else{setOk(true);setTimeout(onDone,2200)}
+  }
+  return<div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 28px'}}>
+    <div className="scale-in" style={{width:'100%'}}>
+      <div style={{textAlign:'center',marginBottom:32}}>
+        <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(124,58,237,0.38)'}}>
+          <ClockSVG size={32}/>
+        </div>
+        <h1 style={{fontSize:24,fontWeight:900,marginBottom:6,letterSpacing:-1,color:'var(--text)'}}>{ok?'¡Listo!':'Nueva contraseña'}</h1>
+        <p style={{fontSize:14,color:'var(--text3)'}}>{ok?'Contraseña actualizada correctamente':'Introduce tu nueva contraseña'}</p>
+      </div>
+      {!ok&&<>
+        <In label="Nueva contraseña" required type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Mínimo 6 caracteres" onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        <In label="Repite la contraseña" required type="password" value={pw2} onChange={e=>setPw2(e.target.value)} placeholder="Repite la contraseña" onKeyDown={e=>e.key==='Enter'&&submit()}/>
+        {msg&&<div style={{padding:'11px 14px',background:'var(--red-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(239,68,68,0.12)'}}><p style={{fontSize:13,color:'var(--red)',fontWeight:500}}>{msg}</p></div>}
+        <Bt full onClick={submit} disabled={ld||!pw||!pw2}>{ld?'Guardando...':'Guardar contraseña'}</Bt>
+      </>}
+      {ok&&<div style={{textAlign:'center',padding:'24px 0'}}>
+        <div style={{fontSize:52,marginBottom:12}}>✅</div>
+        <p style={{fontSize:14,color:'var(--text3)'}}>Redirigiendo...</p>
+      </div>}
+    </div>
+  </div>
+}
+
 // ═══ AUTH ═════════════════════════════════════════════════════════════════════
 function Auth({onLogin,onBack}) {
   const [m,setM]=useState('login'),[em,setEm]=useState(''),[pw,setPw]=useState(''),[nm,setNm]=useState(''),[ph,setPh]=useState(''),[ld,setLd]=useState(false),[er,setEr]=useState('')
+  const [resetSent,setResetSent]=useState(false)
+  const sendReset=async()=>{
+    if(!em.trim()){setEr('Introduce tu email primero');return}
+    setLd(true);setEr('')
+    const{error}=await supabase.auth.resetPasswordForEmail(em.trim(),{redirectTo:window.location.origin})
+    setLd(false)
+    if(error)setEr(error.message||'Error al enviar el correo')
+    else setResetSent(true)
+  }
   const sub=async()=>{
     setEr('');setLd(true)
     try {
@@ -404,10 +448,12 @@ function Auth({onLogin,onBack}) {
       <In label="Email" required type="email" value={em} onChange={e=>setEm(e.target.value)} placeholder="tu@email.com"/>
       <In label="Contraseña" required type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder={m==='register'?'Mínimo 6 caracteres':'••••••••'}/>
       {er&&<div style={{padding:'11px 14px',background:'var(--red-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(239,68,68,0.12)'}}><p style={{fontSize:13,color:'var(--red)',fontWeight:500}}>{er}</p></div>}
+      {resetSent&&<div style={{padding:'11px 14px',background:'var(--green-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(34,197,94,0.15)'}}><p style={{fontSize:13,color:'var(--green)',fontWeight:600}}>✅ Revisa tu email — te hemos enviado un enlace para restablecer la contraseña.</p></div>}
       <Bt full onClick={sub} disabled={ld}>{ld?'Cargando...':m==='register'?'Crear cuenta':'Entrar'}</Bt>
-      <p style={{fontSize:13,color:'var(--text3)',textAlign:'center',marginTop:18}}>
+      {m==='login'&&<button onClick={sendReset} disabled={ld} style={{fontFamily:'inherit',fontSize:13,color:'var(--text3)',background:'none',border:'none',cursor:'pointer',width:'100%',textAlign:'center',marginTop:14,padding:'4px 0'}}>¿Olvidaste tu contraseña?</button>}
+      <p style={{fontSize:13,color:'var(--text3)',textAlign:'center',marginTop:10}}>
         {m==='login'?'¿No tienes cuenta? ':'¿Ya tienes cuenta? '}
-        <button onClick={()=>{setM(m==='login'?'register':'login');setEr('')}} style={{fontFamily:'inherit',fontSize:13,color:'var(--purple)',background:'none',border:'none',cursor:'pointer',fontWeight:700}}>
+        <button onClick={()=>{setM(m==='login'?'register':'login');setEr('');setResetSent(false)}} style={{fontFamily:'inherit',fontSize:13,color:'var(--purple)',background:'none',border:'none',cursor:'pointer',fontWeight:700}}>
           {m==='login'?'Regístrate':'Inicia sesión'}
         </button>
       </p>
@@ -1325,7 +1371,8 @@ export default function App() {
       if(session?.user){setUser(session.user);lP(session.user.id);subscribePush(session.user.id)}
       setView('landing')
     })
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((_e,s)=>{
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((event,s)=>{
+      if(event==='PASSWORD_RECOVERY'){setView('recovery');return}
       if(s?.user){setUser(s.user);lP(s.user.id)}else{setUser(null);setProfile(null)}
     })
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
@@ -1353,6 +1400,7 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
 
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(109,40,217,0.06)'}}>
     <style>{CSS}</style>
+    {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
     {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} salonConfig={salonConfig}/>}
     {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')}/>}
     {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')}/>}
