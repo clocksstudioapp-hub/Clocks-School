@@ -1367,13 +1367,15 @@ export default function App() {
 
   useEffect(()=>{
     loadPublic()
+    let recoveryMode=false
+    const {data:{subscription}}=supabase.auth.onAuthStateChange((event,s)=>{
+      if(event==='PASSWORD_RECOVERY'){recoveryMode=true;setView('recovery');return}
+      if(s?.user){setUser(s.user);lP(s.user.id)}else{setUser(null);setProfile(null)}
+    })
     supabase.auth.getSession().then(({data:{session}})=>{
+      if(recoveryMode)return
       if(session?.user){setUser(session.user);lP(session.user.id);subscribePush(session.user.id)}
       setView('landing')
-    })
-    const {data:{subscription}}=supabase.auth.onAuthStateChange((event,s)=>{
-      if(event==='PASSWORD_RECOVERY'){setView('recovery');return}
-      if(s?.user){setUser(s.user);lP(s.user.id)}else{setUser(null);setProfile(null)}
     })
     const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
 const isAndroid = /android/i.test(navigator.userAgent)
