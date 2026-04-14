@@ -264,7 +264,7 @@ function PWAPrompt({ onClose }) {
   )
 }
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
-function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig,salonSchedule=[]}) {
+function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[]}) {
   const [hi,setHi]=useState(0)
   const [tab,setTab]=useState('servicios')
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
@@ -296,6 +296,7 @@ function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig,salonSc
       </button>}
       <div style={{position:'absolute',top:14,right:14,zIndex:3,display:'flex',gap:8}}>
         {isA&&<button onClick={onAdm} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:700,fontFamily:'inherit',color:'var(--purple)'}}>⚙ Admin</button>}
+        {isBarber&&!isA&&<button onClick={onBar} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:700,fontFamily:'inherit',color:'var(--purple)'}}>✂️ Mi panel</button>}
         {!user&&<button onClick={onLog} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:600,fontFamily:'inherit',color:'var(--text)'}}>Iniciar sesión</button>}
       </div>
     </div>
@@ -741,7 +742,7 @@ function Account({user,profile,stys,onBook,onLogout,onBack,onUp}) {
 // ═══ MODAL HORARIO SEMANAL FIJO ════════════════════════════════════════════════
 // Admin → Equipo → botón "Horario" de cada barbero
 // Permite definir por día de semana: activo/inactivo + hora inicio/fin
-function WeeklyScheduleModal({stylist, onClose, onSaved}) {
+function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
   const DAYS = [1,2,3,4,5,6] // Lun-Sáb
   const DEFAULT_CLOSE = {1:'20:00',2:'20:00',3:'20:00',4:'20:00',5:'20:00',6:'14:00'}
 
@@ -752,6 +753,7 @@ function WeeklyScheduleModal({stylist, onClose, onSaved}) {
     end_time: DEFAULT_CLOSE[d]
   })))
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(()=>{
@@ -783,16 +785,18 @@ function WeeklyScheduleModal({stylist, onClose, onSaved}) {
       }, {onConflict: 'stylist_id,day_of_week'})
     }
     setSaving(false)
+    setSaved(true)
+    setTimeout(()=>setSaved(false),2500)
     onSaved()
   }
 
   const allSlots = gS('06:00','23:30')
   const endSlots = h => gS('06:30','24:00').filter(s=>s>h)
 
-  if(!loaded) return <Modal><Sp/></Modal>
+  if(!loaded) return inline?<Sp/>:<Modal><Sp/></Modal>
 
-  return <Modal>
-    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
+  const content = <>
+    {!inline&&<div style={{display:'flex',alignItems:'center',gap:10,marginBottom:4}}>
       <div style={{width:36,height:36,borderRadius:10,background:'var(--purple-bg)',display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',flexShrink:0}}>
         {stylist.photo_url?<img src={stylist.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:<span style={{fontSize:16,fontWeight:700,color:'var(--purple)'}}>{stylist.name[0]}</span>}
       </div>
@@ -800,10 +804,10 @@ function WeeklyScheduleModal({stylist, onClose, onSaved}) {
         <div style={{fontSize:16,fontWeight:800,color:'var(--text)'}}>{stylist.name}</div>
         <div style={{fontSize:12,color:'var(--text3)'}}>Horario semanal fijo</div>
       </div>
-    </div>
+    </div>}
 
-    <div style={{background:'var(--purple-bg)',borderRadius:10,padding:'10px 12px',margin:'14px 0',fontSize:12,color:'var(--purple)',lineHeight:1.5}}>
-      💡 Este horario se aplica automáticamente cada semana. Los clientes solo verán huecos dentro del turno configurado.
+    <div style={{background:'var(--purple-bg)',borderRadius:10,padding:'10px 12px',margin:inline?'0 0 14px':'14px 0',fontSize:12,color:'var(--purple)',lineHeight:1.5}}>
+      💡 Este horario se aplica automáticamente cada semana. Los clientes solo verán huecos dentro de tu turno.
     </div>
 
     <div style={{display:'flex',flexDirection:'column',gap:8}}>
@@ -844,11 +848,14 @@ function WeeklyScheduleModal({stylist, onClose, onSaved}) {
       })}
     </div>
 
-    <div style={{display:'flex',gap:10,marginTop:18}}>
-      <Bt variant="secondary" onClick={onClose} style={{flex:1}}>Cancelar</Bt>
+    <div style={{display:'flex',gap:10,marginTop:18,alignItems:'center'}}>
+      {!inline&&<Bt variant="secondary" onClick={onClose} style={{flex:1}}>Cancelar</Bt>}
       <Bt onClick={save} disabled={saving} style={{flex:1}}>{saving?'Guardando...':'Guardar horario'}</Bt>
+      {inline&&saved&&<span style={{fontSize:13,fontWeight:600,color:'var(--green)'}}>✅ Guardado</span>}
     </div>
-  </Modal>
+  </>
+
+  return inline ? <div>{content}</div> : <Modal>{content}</Modal>
 }
 
 // ═══ MODAL CONFIG SALÓN ═══════════════════════════════════════════════════════
@@ -1022,9 +1029,11 @@ function ShareTab() {
 }
 
 // ═══ ADMIN ════════════════════════════════════════════════════════════════════
-function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
+function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barberStylistId=null}) {
+  const isBarberMode=!!barberStylistId
   const LS_KEY='clocks-admin-stylist'
   const [myStylistId,setMyStylistId]=useState(()=>{
+    if(barberStylistId)return barberStylistId
     try{const v=localStorage.getItem(LS_KEY);return v?Number(v):null}catch{return null}
   })
   const [tab,setTab]=useState('cal'),[sd,setSd]=useState(new Date())
@@ -1038,6 +1047,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
   const [showSalonConfig,setShowSalonConfig]=useState(false)
   const [showStylistPicker,setShowStylistPicker]=useState(false)
   const [scheduleFor,setScheduleFor]=useState(null) // barbero cuyo horario estamos editando
+  const [allBl,setAllBl]=useState([]) // todos los bloqueos del barbero (modo barber)
 
   const selectMyStylist=id=>{
     setMyStylistId(id)
@@ -1048,6 +1058,14 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
   const filteredAp = myStylistId ? ap.filter(a=>a.stylist_id===myStylistId) : ap
   const filteredBl = myStylistId ? bl.filter(b=>b.stylist_id===myStylistId) : bl
   const myStylist = st.find(s=>s.id===myStylistId)
+
+  const loadAllBlocks=useCallback(async()=>{
+    if(!barberStylistId)return
+    const{data}=await supabase.from('blocked_slots').select('*').eq('stylist_id',barberStylistId).gte('blocked_date',toK(new Date())).order('blocked_date').order('start_time')
+    setAllBl(data||[])
+  },[barberStylistId])
+
+  useEffect(()=>{if(isBarberMode&&tab==='bloqueos')loadAllBlocks()},[tab,isBarberMode,loadAllBlocks])
 
   const loadDay=useCallback(async d=>{
     const dk=toK(d)
@@ -1076,10 +1094,11 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
 
   const doCancelAppt=async id=>{await supabase.from('appointments').update({status:'cancelled',cancelled_by:'admin'}).eq('id',id);setCancelConfirm(null);loadDay(sd)}
   const addBlock=async()=>{
-    await supabase.from('blocked_slots').insert({stylist_id:bS,blocked_date:bD,start_time:bSt,end_time:bE,reason:bR||'Bloqueado',created_by:user.id})
-    setShowBlock(false);setBR('');loadDay(sd)
+    const styId=isBarberMode?barberStylistId:bS
+    await supabase.from('blocked_slots').insert({stylist_id:styId,blocked_date:bD,start_time:bSt,end_time:bE,reason:bR||'Bloqueado',created_by:user.id})
+    setShowBlock(false);setBR('');loadDay(sd);if(isBarberMode)loadAllBlocks()
   }
-  const rmBlock=async id=>{await supabase.from('blocked_slots').delete().eq('id',id);loadDay(sd)}
+  const rmBlock=async id=>{await supabase.from('blocked_slots').delete().eq('id',id);loadDay(sd);if(isBarberMode)loadAllBlocks()}
   const saveSvc=async data=>{
     if(data.id){await supabase.from('services').update({name:data.name,description:data.description,duration:data.duration,price:data.price,category:data.category}).eq('id',data.id)}
     else{const mx=sv.reduce((m,s)=>Math.max(m,s.display_order||0),0);await supabase.from('services').insert({...data,display_order:mx+1,active:true})}
@@ -1109,15 +1128,15 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
             <ClockSVG size={20}/>
           </div>
           <div>
-            <div style={{fontSize:16,fontWeight:800,color:'var(--text)'}}>Panel Admin</div>
+            <div style={{fontSize:16,fontWeight:800,color:'var(--text)'}}>{isBarberMode?'Mi Panel':' Panel Admin'}</div>
             <div style={{fontSize:10,color:'var(--text3)',letterSpacing:0.3}}>Clocks School</div>
           </div>
         </div>
         <Bt small variant="secondary" onClick={onBack}>← Salir</Bt>
       </div>
 
-      {/* Selector barbero propio */}
-      <button onClick={()=>setShowStylistPicker(true)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:myStylist?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:myStylist?'none':'1.5px dashed var(--border2)',borderRadius:12,cursor:'pointer',transition:'all .2s',boxShadow:myStylist?'0 4px 14px rgba(124,58,237,0.28)':'none'}}>
+      {/* Selector barbero propio — solo para admin completo */}
+      {!isBarberMode&&<button onClick={()=>setShowStylistPicker(true)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:myStylist?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:myStylist?'none':'1.5px dashed var(--border2)',borderRadius:12,cursor:'pointer',transition:'all .2s',boxShadow:myStylist?'0 4px 14px rgba(124,58,237,0.28)':'none'}}>
         {myStylist?<>
           <div style={{width:30,height:30,borderRadius:15,background:'rgba(255,255,255,0.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',overflow:'hidden',flexShrink:0}}>
             {myStylist.photo_url?<img src={myStylist.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:myStylist.name[0]}
@@ -1132,11 +1151,11 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
           <span style={{fontSize:13,color:'var(--text3)',fontWeight:500}}>¿Quién eres? Selecciona tu perfil</span>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text3)" strokeWidth="2"><path d="M6 9l6 6 6-6"/></svg>
         </>}
-      </button>
+      </button>}
     </div>
 
     {/* Picker barbero */}
-    {showStylistPicker&&<Modal>
+    {!isBarberMode&&showStylistPicker&&<Modal>
       <h3 style={{fontSize:18,fontWeight:800,marginBottom:6,color:'var(--text)'}}>¿Quién eres?</h3>
       <p style={{fontSize:13,color:'var(--text3)',marginBottom:18}}>Filtra el calendario con tus citas únicamente</p>
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
@@ -1162,7 +1181,10 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
 
     {/* Tabs */}
     <div style={{display:'flex',background:'var(--white)',borderBottom:'1px solid var(--border)',padding:'0 16px',overflowX:'auto'}}>
-      {[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['compartir','🔗 Compartir']].map(([id,l])=>
+      {(isBarberMode
+        ?[['cal','📅 Calendario'],['horario','🕐 Mi horario'],['bloqueos','🚫 Mis bloqueos']]
+        :[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['compartir','🔗 Compartir']]
+      ).map(([id,l])=>
         <button key={id} onClick={()=>setTab(id)} style={{padding:'13px 12px',fontFamily:'inherit',fontSize:12,fontWeight:600,background:'none',border:'none',cursor:'pointer',color:tab===id?'var(--purple)':'var(--text3)',borderBottom:tab===id?'2.5px solid var(--purple)':'2.5px solid transparent',whiteSpace:'nowrap'}}>{l}</button>
       )}
     </div>
@@ -1235,9 +1257,11 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
 
         {showBlock&&<Modal>
           <h3 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Bloquear horario</h3>
-          <Sl label="Profesional" value={bS} onChange={e=>setBS(Number(e.target.value))}>
-            {st.filter(s=>s.active).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
-          </Sl>
+          {isBarberMode
+            ?<div style={{marginBottom:13,padding:'9px 12px',background:'var(--purple-bg)',borderRadius:9,fontSize:13,fontWeight:600,color:'var(--purple)'}}>{myStylist?.name}</div>
+            :<Sl label="Profesional" value={bS} onChange={e=>setBS(Number(e.target.value))}>
+              {st.filter(s=>s.active).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}
+            </Sl>}
           <In label="Fecha" type="date" value={bD} onChange={e=>setBD(e.target.value)}/>
           <div style={{display:'flex',gap:10}}>
             <div style={{flex:1}}><Sl label="Desde" value={bSt} onChange={e=>setBSt(e.target.value)}>{gS('06:00','23:30').map(h=><option key={h} value={h}>{h}</option>)}</Sl></div>
@@ -1308,6 +1332,27 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged}) {
 
       {/* ── COMPARTIR ── */}
       {tab==='compartir'&&<ShareTab/>}
+
+      {/* ── MI HORARIO (barber mode) ── */}
+      {tab==='horario'&&isBarberMode&&myStylist&&<WeeklyScheduleModal stylist={myStylist} onSaved={()=>{if(onDataChanged)onDataChanged()}} inline/>}
+      {tab==='horario'&&isBarberMode&&!myStylist&&<div style={{padding:40,textAlign:'center',color:'var(--text3)'}}>Cargando...</div>}
+
+      {/* ── MIS BLOQUEOS (barber mode) ── */}
+      {tab==='bloqueos'&&isBarberMode&&<div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <h2 style={{fontSize:16,fontWeight:700}}>Mis bloqueos</h2>
+          <Bt small variant="secondary" onClick={()=>{setBD(toK(sd));setBS(barberStylistId);setShowBlock(true)}}>🚫 Añadir</Bt>
+        </div>
+        {allBl.length===0&&<Em icon="✅" text="No tienes bloqueos activos"/>}
+        {allBl.map(b=><div key={b.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'var(--red-bg)',border:'1px solid rgba(239,68,68,0.12)',borderRadius:12,marginBottom:8}}>
+          <span style={{fontSize:13,fontWeight:700,color:'var(--red)',minWidth:44}}>{b.start_time?.slice(0,5)}</span>
+          <div style={{flex:1}}>
+            <div style={{fontSize:13,fontWeight:600,color:'var(--red)'}}>{b.reason}</div>
+            <div style={{fontSize:11,color:'var(--text3)'}}>{new Date(b.blocked_date+'T12:00').toLocaleDateString('es-ES',{weekday:'short',day:'numeric',month:'short'})} · {b.start_time?.slice(0,5)}–{b.end_time?.slice(0,5)}</div>
+          </div>
+          <button onClick={()=>rmBlock(b.id)} style={{fontSize:11,color:'var(--red)',background:'none',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Quitar</button>
+        </div>)}
+      </div>}
     </div>
 
     {editSvc&&<SvcModal data={editSvc} onSave={saveSvc} onClose={()=>setEditSvc(null)}/>}
@@ -1408,6 +1453,7 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
   const hO=async()=>{await supabase.auth.signOut();setUser(null);setProfile(null);setView('landing')}
   const hR=s=>{setPs(s);if(user)setView('booking');else setView('auth')}
   const isA=profile?.role==='admin'
+  const isBarber=profile?.role==='barber'
 
   const reloadSalonConfig=async()=>{
     const{data}=await supabase.from('salon_config').select('*').limit(1).maybeSingle()
@@ -1419,12 +1465,13 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(109,40,217,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
-    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} salonConfig={salonConfig} salonSchedule={salonSchedule}/>}
+    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule}/>}
     {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')}/>}
     {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule}/>}
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
-    {view==='admin'&&user&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
+    {view==='admin'&&user&&isA&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
+    {view==='barber'&&user&&isBarber&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig} barberStylistId={profile?.stylist_id}/>}
     {showPWA && <PWAPrompt onClose={() => setShowPWA(false)} />}
   </div>
 }
