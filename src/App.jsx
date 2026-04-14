@@ -58,20 +58,26 @@ const alvaroEffDur = (sty, svc) => {
 }
 
 // Dado un barbero y una fecha, calcula sus slots libres teniendo en cuenta
-// su horario semanal fijo (stylist_schedules) + bloqueos puntuales
-const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, svcDuration) => {
+// su horario semanal fijo (stylist_schedules) + bloqueos puntuales + horario del salón
+const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, svcDuration, salonSchedule=[]) => {
   const dow = date.getDay() // 0=Dom,1=Lun,...,6=Sáb
   if(dow === 0) return [] // Domingo siempre cerrado
 
+  // Horario del salón para este día
+  const salSched = salonSchedule.find(s => s.day_of_week === dow)
+  if(salSched && !salSched.active) return [] // Salón cerrado este día
+
   // Horario fijo del barbero para este día de semana (1=Lun...6=Sáb)
   const sched = schedules.find(s => s.stylist_id === stylistId && s.day_of_week === dow)
-
-  // Si tiene horario configurado y está desactivado → no trabaja
   if(sched && !sched.active) return []
 
-  // Horario efectivo: usa el del barbero si existe, si no el del salón
-  const dayOpen = sched ? sched.start_time.slice(0,5) : '09:00'
-  const dayClose = sched ? sched.end_time.slice(0,5) : (dow === 6 ? '14:00' : '20:00')
+  // Horario efectivo: barbero > salón > fallback
+  const dayOpen = sched ? sched.start_time.slice(0,5) : (salSched ? salSched.open_time.slice(0,5) : '09:00')
+  const dayClose = sched ? sched.end_time.slice(0,5) : (salSched ? salSched.close_time.slice(0,5) : (dow === 6 ? '14:00' : '20:00'))
+
+  // Break del salón
+  const breakStart = salSched?.break_start ? salSched.break_start.slice(0,5) : null
+  const breakEnd = salSched?.break_end ? salSched.break_end.slice(0,5) : null
 
   const allSlots = gS(dayOpen, dayClose)
   const dk = toK(date)
@@ -88,6 +94,8 @@ const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, 
   return allSlots.filter(s => {
     const end = aM(s, svcDuration)
     if(end > dayClose) return false
+    // Excluir slots que solapan con el break
+    if(breakStart && breakEnd && s < breakEnd && end > breakStart) return false
     let c = s
     while(c < end){ if(taken.has(c)) return false; c = aM(c,30) }
     return true
@@ -256,13 +264,18 @@ function PWAPrompt({ onClose }) {
   )
 }
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
-function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig}) {
+function Landing({svcs,stys,user,isA,onRes,onLog,onAcc,onAdm,salonConfig,salonSchedule=[]}) {
   const [hi,setHi]=useState(0)
   const [tab,setTab]=useState('servicios')
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
 
   const now=new Date(),dow=now.getDay(),hr=now.getHours()+now.getMinutes()/60
-  const isOpen=dow>=1&&dow<=5?hr>=9&&hr<20:dow===6?hr>=9&&hr<14:false
+  const tF=t=>{ const[h,m]=t.slice(0,5).split(':').map(Number);return h+m/60 }
+  const salSched=salonSchedule.find(s=>s.day_of_week===dow)
+  const isOpen=salSched
+    ? salSched.active&&hr>=tF(salSched.open_time)&&hr<tF(salSched.close_time)
+      &&!(salSched.break_start&&salSched.break_end&&hr>=tF(salSched.break_start)&&hr<tF(salSched.break_end))
+    : (dow>=1&&dow<=5?hr>=9&&hr<20:dow===6?hr>=9&&hr<14:false)
   const pop=svcs.filter(s=>s.category==='popular')
   const oth=svcs.filter(s=>s.category!=='popular')
   const addr=salonConfig?.address||'C/ José Pellicer, 29, Zaragoza'
@@ -462,7 +475,7 @@ function Auth({onLogin,onBack}) {
 }
 
 // ═══ BOOKING ══════════════════════════════════════════════════════════════════
-function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
+function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
   const [step,setStep]=useState(pre?1:0)
   const [svc,setSvc]=useState(pre),[sty,setSty]=useState(null)
   const [date,setDate]=useState(null),[time,setTime]=useState(null)
@@ -496,7 +509,8 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
         const maxFree=Math.max(...stys.map(s=>getSlotsForDay(d,s.id,schedules,
         (bd||[]),
        (bl||[]),
-        alvaroEffDur(s,svc)
+        alvaroEffDur(s,svc),
+        salonSchedule
         ).length))
        const free=maxFree
         avail[toK(d)]=free>10?'green':free>5?'yellow':free>0?'orange':'none'
@@ -519,7 +533,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack}) {
   supabase.from('appointments').select('appointment_time,end_time,stylist_id,appointment_date,user_id').eq('appointment_date',dk).eq('status','confirmed'),
   supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('blocked_date',dk),
 ])
-const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc)))
+const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule))
 const userTaken=new Set();(bd||[]).filter(a=>a.user_id===user.id).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
 const unionSlots=[...new Set(allSlotSets.flat())].filter(s=>!userTaken.has(s)).sort()
 setDayData({bd:bd||[],bl:bl||[]})
@@ -1355,14 +1369,16 @@ export default function App() {
   const [svcs,setSvcs]=useState([]),[stys,setStys]=useState([])
   const [lb,setLb]=useState(null),[ps,setPs]=useState(null)
   const [salonConfig,setSalonConfig]=useState(null)
+  const [salonSchedule,setSalonSchedule]=useState([])
 
   const loadPublic=async()=>{
-    const [{data:sv},{data:st},{data:sc}]=await Promise.all([
+    const [{data:sv},{data:st},{data:sc},{data:ss}]=await Promise.all([
       supabase.from('services').select('*').eq('active',true).order('display_order'),
       supabase.from('stylists').select('*').eq('active',true).order('display_order'),
       supabase.from('salon_config').select('*').limit(1).maybeSingle(),
+      supabase.from('salon_schedule').select('*').order('day_of_week'),
     ])
-    setSvcs(sv||[]);setStys(st||[]);setSalonConfig(sc||null)
+    setSvcs(sv||[]);setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[])
   }
 
   useEffect(()=>{
@@ -1403,9 +1419,9 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(109,40,217,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
-    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} salonConfig={salonConfig}/>}
+    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} salonConfig={salonConfig} salonSchedule={salonSchedule}/>}
     {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')}/>}
-    {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')}/>}
+    {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule}/>}
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
     {view==='admin'&&user&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
