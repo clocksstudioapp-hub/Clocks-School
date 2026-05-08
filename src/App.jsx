@@ -269,7 +269,12 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
   const [tab,setTab]=useState('servicios')
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
 
-  const now=new Date(),dow=now.getDay(),hr=now.getHours()+now.getMinutes()/60
+  const spainParts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date())
+  const wkMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}
+  const dow=wkMap[spainParts.find(p=>p.type==='weekday')?.value]??new Date().getDay()
+  const spH=Number(spainParts.find(p=>p.type==='hour')?.value||0)
+  const spM=Number(spainParts.find(p=>p.type==='minute')?.value||0)
+  const hr=(spH===24?0:spH)+spM/60
   const tF=t=>{ const[h,m]=t.slice(0,5).split(':').map(Number);return h+m/60 }
   const salSched=salonSchedule.find(s=>s.day_of_week===dow)
   const isOpen=salSched
