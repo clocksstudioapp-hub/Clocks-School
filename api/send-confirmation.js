@@ -57,6 +57,13 @@ export default async function handler(req, res) {
       .eq('id', appt.user_id)
       .single()
 
+    const { data: cfgRows } = await supabase
+      .from('salon_config')
+      .select('key,value')
+    const cfg = Object.fromEntries((cfgRows || []).map(r => [r.key, r.value]))
+    const salonName = cfg.salon_name || 'Clocks School'
+    const direccion = cfg.address || ''
+
     const nombre = profile?.full_name || 'cliente'
     const servicio = appt.services?.name || 'Servicio'
     const profesional = appt.stylists?.name || 'nuestro equipo'
@@ -73,11 +80,13 @@ export default async function handler(req, res) {
           <tr><td style="padding:8px 0;color:#888">Fecha</td><td style="padding:8px 0;text-align:right;font-weight:600">${fecha}</td></tr>
           <tr><td style="padding:8px 0;color:#888">Hora</td><td style="padding:8px 0;text-align:right;font-weight:600">${hora}h</td></tr>
         </table>
-        <p style="font-size:13px;color:#999;margin-top:24px">Clocks Estudio Barbería</p>
+        <p style="font-size:13px;color:#999;margin-top:24px;line-height:1.6">
+          <strong style="color:#1a1a1a">${salonName}</strong>${direccion ? `<br/>${direccion}` : ''}
+        </p>
       </div>`
 
     await transporter.sendMail({
-      from: `Clocks Estudio Barbería <${process.env.GMAIL_USER}>`,
+      from: `${salonName} <${process.env.GMAIL_USER}>`,
       to: email,
       subject: `Reserva confirmada — ${fecha}`,
       html,
