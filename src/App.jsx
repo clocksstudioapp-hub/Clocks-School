@@ -551,10 +551,14 @@ setSlots(unionSlots)
   const confirm=async()=>{
     if(!svc||!sty||!date||!time)return;setBk(true);setBookErr('')
     const dur=alvaroEffDur(sty,svc)
-    const {error}=await supabase.from('appointments').insert({user_id:user.id,stylist_id:sty.id,service_id:svc.id,appointment_date:toK(date),appointment_time:time,end_time:aM(time,dur),notes:note||null,status:'confirmed'})
+    const {data,error}=await supabase.from('appointments').insert({user_id:user.id,stylist_id:sty.id,service_id:svc.id,appointment_date:toK(date),appointment_time:time,end_time:aM(time,dur),notes:note||null,status:'confirmed'}).select('id').single()
     setBk(false)
     if(error){setBookErr(error.message||'Error al guardar la reserva. Inténtalo de nuevo.')}
-    else{onDone({service:svc,stylist:sty,date,time})}
+    else{
+      // fire-and-forget: el email no debe bloquear ni romper la reserva
+      fetch('/api/send-confirmation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appointmentId:data.id})}).catch(()=>{})
+      onDone({service:svc,stylist:sty,date,time})
+    }
   }
 
   const pop=svcs.filter(s=>s.category==='popular'),oth=svcs.filter(s=>s.category!=='popular')
