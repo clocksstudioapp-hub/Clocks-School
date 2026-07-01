@@ -1,9 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
+import nodemailer from 'nodemailer'
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 )
+
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.GMAIL_USER,
+    pass: process.env.GMAIL_APP_PASSWORD,
+  },
+})
 
 const DIAS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
 const MESES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
@@ -67,24 +76,12 @@ export default async function handler(req, res) {
         <p style="font-size:13px;color:#999;margin-top:24px">Clocks Estudio Barbería</p>
       </div>`
 
-    const resp = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: process.env.RESEND_FROM,
-        to: email,
-        subject: `Reserva confirmada — ${fecha}`,
-        html,
-      }),
+    await transporter.sendMail({
+      from: `Clocks Estudio Barbería <${process.env.GMAIL_USER}>`,
+      to: email,
+      subject: `Reserva confirmada — ${fecha}`,
+      html,
     })
-
-    if (!resp.ok) {
-      const detail = await resp.text()
-      return res.status(500).json({ ok: false, error: `Resend: ${resp.status} ${detail}` })
-    }
 
     return res.status(200).json({ ok: true })
   } catch (e) {

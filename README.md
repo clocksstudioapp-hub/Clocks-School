@@ -34,16 +34,18 @@ Esa es la URL que pones en los botones "Reservar" de la landing HTML.
 ## Email de confirmación de cita
 
 La función serverless `api/send-confirmation.js` envía un email de confirmación
-al cliente al reservar (vía [Resend](https://resend.com)). Requiere estas
-variables de entorno **en Vercel** (server-side, no llevan el prefijo `VITE_`):
+al cliente al reservar, usando el SMTP de Gmail (vía `nodemailer`). No requiere
+dominio propio: los correos salen desde la cuenta de Gmail del negocio. Requiere
+estas variables de entorno **en Vercel** (server-side, no llevan el prefijo
+`VITE_`):
 
-- `RESEND_API_KEY` — API key de Resend.
-- `RESEND_FROM` — remitente, ej. `Clocks Estudio <reservas@tudominio.com>`. Para
-  pruebas puedes usar `onboarding@resend.dev` (Resend solo permite enviar a la
-  dirección de tu propia cuenta hasta que verifiques un dominio).
+- `GMAIL_USER` — dirección Gmail del negocio (ej. `clocks.studioapp@gmail.com`).
+- `GMAIL_APP_PASSWORD` — "Contraseña de aplicación" de 16 caracteres generada en
+  la cuenta Google (requiere verificación en 2 pasos activada). NO es la
+  contraseña normal de la cuenta. Se genera en
+  https://myaccount.google.com/apppasswords
 - `SUPABASE_URL` — URL del proyecto Supabase.
 - `SUPABASE_SERVICE_KEY` — service role key de Supabase. **Nunca** se expone al
   cliente; solo la usa la función serverless.
 
-Para producción, verifica tu dominio de email en Resend (registros DNS) para
-poder enviar a cualquier destinatario.
+Límite de envío de Gmail: ~500 correos/día (suficiente para este uso).

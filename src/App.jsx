@@ -505,7 +505,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
       const startDate=`${cY}-${String(cM+1).padStart(2,'0')}-01`
       const endDate=`${cM===11?cY+1:cY}-${String(cM===11?1:cM+2).padStart(2,'0')}-01`
       const [{data:bd},{data:bl}]=await Promise.all([
-      supabase.from('appointments').select('appointment_date,appointment_time,end_time,stylist_id').gte('appointment_date',startDate).lt('appointment_date',endDate).eq('status','confirmed'),
+      supabase.rpc('get_busy_slots',{p_from:startDate,p_to:endDate}),
       supabase.from('blocked_slots').select('blocked_date,start_time,end_time,stylist_id').gte('blocked_date',startDate).lt('blocked_date',endDate),
       ])
       const avail={},daysInMonth=new Date(cY,cM+1,0).getDate()
@@ -535,12 +535,13 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
     if(!date){setSlots([]);return}
     ;(async()=>{
       setSL(true);const dk=toK(date)
-      const [{data:bd},{data:bl}]=await Promise.all([
-  supabase.from('appointments').select('appointment_time,end_time,stylist_id,appointment_date,user_id').eq('appointment_date',dk).eq('status','confirmed'),
+      const [{data:bd},{data:bl},{data:mine}]=await Promise.all([
+  supabase.rpc('get_busy_slots',{p_from:dk,p_to:dk}),
   supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('blocked_date',dk),
+  supabase.from('appointments').select('appointment_time,end_time').eq('appointment_date',dk).eq('user_id',user.id).eq('status','confirmed'),
 ])
 const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule))
-const userTaken=new Set();(bd||[]).filter(a=>a.user_id===user.id).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
+const userTaken=new Set();(mine||[]).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
 const unionSlots=[...new Set(allSlotSets.flat())].filter(s=>!userTaken.has(s)).sort()
 setDayData({bd:bd||[],bl:bl||[]})
 setSlots(unionSlots)
