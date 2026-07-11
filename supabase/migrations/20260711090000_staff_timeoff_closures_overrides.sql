@@ -121,7 +121,14 @@ create policy schedule_overrides_staff_write on public.schedule_overrides for al
 -- ----------------------------------------------------------------------------
 -- 5. Fila de DOMINGO cerrada en salon_schedule (imprescindible ANTES de quitar
 --    el hardcode dow===0 del cliente: sin fila, el motor abriría 09:00-20:00)
+--    La tabla nació con CHECK day_of_week 1..6; se relaja a 0..6 (convención JS
+--    getDay(), domingo=0, que es la que usan las dos apps).
 -- ----------------------------------------------------------------------------
+alter table public.salon_schedule
+  drop constraint if exists salon_schedule_day_of_week_check;
+alter table public.salon_schedule
+  add constraint salon_schedule_day_of_week_check check (day_of_week >= 0 and day_of_week <= 6);
+
 insert into public.salon_schedule (day_of_week, active, open_time, close_time)
 select 0, false, '09:00', '20:00'
 where not exists (select 1 from public.salon_schedule where day_of_week = 0);
