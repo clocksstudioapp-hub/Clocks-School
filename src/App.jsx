@@ -143,80 +143,6 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
     </div>
   </div>
 }
-// ═══ PWA INSTALL PROMPT ═══
-function PWAPrompt({ onClose }) {
-  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-  const isAndroid = /android/i.test(navigator.userAgent)
-  const [deferredPrompt, setDeferredPrompt] = useState(null)
-
-  useEffect(() => {
-    const handler = e => { e.preventDefault(); setDeferredPrompt(e) }
-    window.addEventListener('beforeinstallprompt', handler)
-    return () => window.removeEventListener('beforeinstallprompt', handler)
-  }, [])
-
-  const install = async () => {
-    if (!deferredPrompt) return
-    deferredPrompt.prompt()
-    await deferredPrompt.userChoice
-    onClose()
-  }
-
-  if (!isIOS && !isAndroid) return null
-
-  return (
-    <div style={{ position:'fixed', bottom:0, left:'50%', transform:'translateX(-50%)', width:'100%', maxWidth:480, zIndex:300, padding:'0 16px 16px' }}>
-      <div className="scale-in" style={{ background:'var(--white)', borderRadius:20, padding:20, boxShadow:'0 -4px 32px rgba(109,40,217,0.18)', border:'1.5px solid var(--border)' }}>
-        <button onClick={onClose} style={{ position:'absolute', top:14, right:14, background:'none', border:'none', cursor:'pointer', fontSize:18, color:'var(--text3)' }}>✕</button>
-        <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16 }}>
-          <div style={{ width:48, height:48, borderRadius:14, background:'linear-gradient(135deg,#7C3AED,#A78BFA)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <svg width="26" height="26" viewBox="0 0 30 30" fill="none">
-              <circle cx="15" cy="15" r="10" stroke="rgba(255,255,255,0.85)" strokeWidth="1.5"/>
-              <path d="M15 9v6l4 4" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </div>
-          <div>
-            <div style={{ fontSize:15, fontWeight:700 }}>Instala la app</div>
-            <div style={{ fontSize:12, color:'var(--text3)' }}>Acceso rápido desde tu móvil</div>
-          </div>
-        </div>
-
-        {isAndroid && deferredPrompt && (
-          <Bt full onClick={install}>⬇️ Instalar ahora</Bt>
-        )}
-
-        {isAndroid && !deferredPrompt && (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {[
-              ['⋮', 'Pulsa el menú de Chrome (⋮)'],
-              ['➕', 'Toca "Añadir a pantalla de inicio"'],
-            ].map(([icon, text]) => (
-              <div key={text} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
-                <span style={{ fontSize:18 }}>{icon}</span>
-                <span style={{ fontSize:13, fontWeight:500 }}>{text}</span>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {isIOS && (
-          <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
-            {[
-              ['🧭', 'Abre esta página en Safari'],
-              ['⬆️', 'Pulsa el botón Compartir'],
-              ['➕', 'Toca "Añadir a pantalla de inicio"'],
-            ].map(([icon, text]) => (
-              <div key={text} style={{ display:'flex', alignItems:'center', gap:12, padding:'10px 14px', background:'var(--bg)', borderRadius:12 }}>
-                <span style={{ fontSize:18 }}>{icon}</span>
-                <span style={{ fontSize:13, fontWeight:500 }}>{text}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
 function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[]}) {
   const [hi,setHi]=useState(0)
@@ -1475,7 +1401,7 @@ async function subscribePush(userId) {
 }
 // ═══ MAIN ═════════════════════════════════════════════════════════════════════
 export default function App() {
-  const [user,setUser]=useState(null),[profile,setProfile]=useState(null), [showPWA, setShowPWA] = useState(false)
+  const [user,setUser]=useState(null),[profile,setProfile]=useState(null)
   const [view,setView]=useState('loading')
   const [svcs,setSvcs]=useState([]),[stys,setStys]=useState([])
   const [lb,setLb]=useState(null),[ps,setPs]=useState(null)
@@ -1506,13 +1432,6 @@ export default function App() {
       if(session?.user){setUser(session.user);lP(session.user.id);subscribePush(session.user.id)}
       setView('landing')
     })
-    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
-const isAndroid = /android/i.test(navigator.userAgent)
-const alreadyPrompted = localStorage.getItem('pwa-prompted')
-if ((isIOS || isAndroid) && !alreadyPrompted) {
-  setTimeout(() => setShowPWA(true), 3000)
-  localStorage.setItem('pwa-prompted', '1')
-}
     return()=>subscription.unsubscribe()
   },[])
 
@@ -1540,6 +1459,5 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
     {view==='admin'&&user&&isA&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
     {view==='barber'&&user&&isBarber&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig} barberStylistId={profile?.stylist_id}/>}
-    {showPWA && <PWAPrompt onClose={() => setShowPWA(false)} />}
   </div>
 }
