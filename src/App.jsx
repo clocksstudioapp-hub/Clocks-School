@@ -719,7 +719,8 @@ function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
     day_of_week: d,
     active: d!==0,
     start_time: '09:00',
-    end_time: DEFAULT_CLOSE[d]
+    end_time: DEFAULT_CLOSE[d],
+    hasBreak:false, break_start:'14:00', break_end:'15:00'
   })))
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -731,8 +732,8 @@ function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
         setRows(DAYS.map(d=>{
           const existing = data.find(r=>r.day_of_week===d)
           return existing
-            ? {day_of_week:d, active:existing.active, start_time:existing.start_time.slice(0,5), end_time:existing.end_time.slice(0,5)}
-            : {day_of_week:d, active:d!==0, start_time:'09:00', end_time:DEFAULT_CLOSE[d]}
+            ? {day_of_week:d, active:existing.active, start_time:existing.start_time.slice(0,5), end_time:existing.end_time.slice(0,5), hasBreak:!!(existing.break_start&&existing.break_end), break_start:existing.break_start?.slice(0,5)||'14:00', break_end:existing.break_end?.slice(0,5)||'15:00'}
+            : {day_of_week:d, active:d!==0, start_time:'09:00', end_time:DEFAULT_CLOSE[d], hasBreak:false, break_start:'14:00', break_end:'15:00'}
         }))
       }
       setLoaded(true)
@@ -750,7 +751,9 @@ function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
         day_of_week: row.day_of_week,
         active: row.active,
         start_time: row.start_time,
-        end_time: row.end_time
+        end_time: row.end_time,
+        break_start: row.hasBreak?row.break_start:null,
+        break_end: row.hasBreak?row.break_end:null
       }, {onConflict: 'stylist_id,day_of_week'})
     }
     setSaving(false)
@@ -794,7 +797,8 @@ function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
             </div>
           </div>
           {/* Selectores hora */}
-          {row.active&&<div style={{display:'flex',gap:8,padding:'8px 14px 12px',background:'var(--white)',borderTop:'1px solid var(--border)'}}>
+          {row.active&&<>
+          <div style={{display:'flex',gap:8,padding:'8px 14px 12px',background:'var(--white)',borderTop:'1px solid var(--border)'}}>
             <div style={{flex:1}}>
               <label style={{fontSize:11,fontWeight:600,color:'var(--text3)',display:'block',marginBottom:4}}>ENTRADA</label>
               <select value={row.start_time} onChange={e=>{update(row.day_of_week,'start_time',e.target.value);if(e.target.value>=row.end_time)update(row.day_of_week,'end_time',aM(e.target.value,30))}} style={{width:'100%',padding:'8px 10px',fontSize:13,border:'1px solid var(--border2)',borderRadius:8,background:'var(--bg)',color:'var(--text)',fontFamily:'inherit',cursor:'pointer',paddingRight:28}}>
@@ -812,7 +816,16 @@ function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
                 {row.start_time}–{row.end_time}
               </div>
             </div>
-          </div>}
+          </div>
+          <div style={{display:'flex',gap:8,padding:'0 14px 12px',background:'var(--white)',alignItems:'center'}}>
+            <button onClick={()=>update(row.day_of_week,'hasBreak',!row.hasBreak)} style={{display:'flex',alignItems:'center',gap:5,padding:'6px 12px',borderRadius:8,border:`1.5px solid ${row.hasBreak?'var(--orange)':'var(--border2)'}`,background:row.hasBreak?'var(--orange-bg)':'var(--white)',cursor:'pointer',fontSize:12,fontWeight:700,color:row.hasBreak?'var(--orange)':'var(--text3)',fontFamily:'inherit'}}>☕ {row.hasBreak?'Break':'+ Break'}</button>
+            {row.hasBreak&&<>
+              <select value={row.break_start} onChange={e=>update(row.day_of_week,'break_start',e.target.value)} style={{flex:1,padding:'8px 10px',fontSize:13,border:'1px solid var(--border2)',borderRadius:8,background:'var(--bg)',color:'var(--text)',fontFamily:'inherit',cursor:'pointer',paddingRight:28}}>{allSlots.map(h=><option key={h} value={h}>{h}</option>)}</select>
+              <span style={{fontSize:12,color:'var(--text3)'}}>→</span>
+              <select value={row.break_end} onChange={e=>update(row.day_of_week,'break_end',e.target.value)} style={{flex:1,padding:'8px 10px',fontSize:13,border:'1px solid var(--border2)',borderRadius:8,background:'var(--bg)',color:'var(--text)',fontFamily:'inherit',cursor:'pointer',paddingRight:28}}>{endSlots(row.break_start).map(h=><option key={h} value={h}>{h}</option>)}</select>
+            </>}
+          </div>
+          </>}
         </div>
       })}
     </div>
@@ -997,6 +1010,50 @@ function ShareTab() {
   )
 }
 
+// ═══ MODAL SOLICITAR AUSENCIA (profesor) ═══
+function MyAbsenceModal({onSubmit,onClose}) {
+  const [sd,setSd]=useState(toK(new Date())),[ed,setEd]=useState(toK(new Date()))
+  const [allDay,setAllDay]=useState(true),[st,setSt]=useState('09:00'),[et,setEt]=useState('14:00')
+  const [type,setType]=useState('vacation'),[reason,setReason]=useState('')
+  const [saving,setSaving]=useState(false),[err,setErr]=useState('')
+  const valid=ed>=sd&&(allDay||et>st)
+  const submit=async()=>{
+    setSaving(true);setErr('')
+    const e=await onSubmit({start_date:sd,end_date:ed,all_day:allDay,start_time:allDay?null:st,end_time:allDay?null:et,type,reason:reason||null})
+    setSaving(false)
+    if(e)setErr(e.message||'Error al guardar')
+  }
+  return <Modal>
+    <h3 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Solicitar ausencia</h3>
+    <div style={{display:'flex',gap:10}}>
+      <div style={{flex:1}}><In label="Desde" type="date" value={sd} onChange={e=>setSd(e.target.value)}/></div>
+      <div style={{flex:1}}><In label="Hasta" type="date" value={ed} onChange={e=>setEd(e.target.value)}/></div>
+    </div>
+    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+      <span style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>Todo el día</span>
+      <button onClick={()=>setAllDay(!allDay)} style={{width:44,height:24,borderRadius:12,position:'relative',cursor:'pointer',border:'none',background:allDay?'var(--purple)':'var(--border)',transition:'all .3s'}}>
+        <div style={{width:20,height:20,borderRadius:10,background:'#fff',position:'absolute',top:2,left:allDay?22:2,transition:'all .3s',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
+      </button>
+    </div>
+    {!allDay&&<div style={{display:'flex',gap:10}}>
+      <div style={{flex:1}}><Sl label="Desde" value={st} onChange={e=>setSt(e.target.value)}>{gS('07:00','22:30').map(h=><option key={h} value={h}>{h}</option>)}</Sl></div>
+      <div style={{flex:1}}><Sl label="Hasta" value={et} onChange={e=>setEt(e.target.value)}>{gS('07:30','23:00').map(h=><option key={h} value={h}>{h}</option>)}</Sl></div>
+    </div>}
+    <Sl label="Tipo" value={type} onChange={e=>setType(e.target.value)}>
+      <option value="vacation">🌴 Vacaciones</option>
+      <option value="sick">🤒 Baja</option>
+      <option value="personal">🙍 Personal</option>
+      <option value="other">📝 Otro</option>
+    </Sl>
+    <In label="Motivo (opcional)" value={reason} onChange={e=>setReason(e.target.value)} placeholder="Ej: viaje familiar"/>
+    {err&&<p style={{fontSize:12,color:'var(--red)',marginBottom:10}}>{err}</p>}
+    <div style={{display:'flex',gap:10,marginTop:8}}>
+      <Bt variant="secondary" onClick={onClose} style={{flex:1}}>Cancelar</Bt>
+      <Bt onClick={submit} disabled={saving||!valid} style={{flex:1}}>{saving?'Enviando...':'Solicitar'}</Bt>
+    </div>
+  </Modal>
+}
+
 // ═══ ADMIN ════════════════════════════════════════════════════════════════════
 function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barberStylistId=null}) {
   const isBarberMode=!!barberStylistId
@@ -1017,6 +1074,8 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
   const [showStylistPicker,setShowStylistPicker]=useState(false)
   const [scheduleFor,setScheduleFor]=useState(null) // barbero cuyo horario estamos editando
   const [allBl,setAllBl]=useState([]) // todos los bloqueos del barbero (modo barber)
+  const [myTO,setMyTO]=useState([])           // mis ausencias (modo barber)
+  const [showAbsence,setShowAbsence]=useState(false)
 
   const selectMyStylist=id=>{
     setMyStylistId(id)
@@ -1035,6 +1094,21 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
   },[barberStylistId])
 
   useEffect(()=>{if(isBarberMode&&tab==='bloqueos')loadAllBlocks()},[tab,isBarberMode,loadAllBlocks])
+
+  const loadMyTimeOff=useCallback(async()=>{
+    if(!barberStylistId)return
+    const{data}=await supabase.from('time_off').select('*').eq('stylist_id',barberStylistId).gte('end_date',toK(new Date())).order('start_date')
+    setMyTO(data||[])
+  },[barberStylistId])
+
+  useEffect(()=>{if(isBarberMode&&tab==='ausencias')loadMyTimeOff()},[tab,isBarberMode,loadMyTimeOff])
+
+  const addMyTimeOff=async d=>{
+    const{error}=await supabase.from('time_off').insert({...d,stylist_id:barberStylistId,approved:false,created_by:user.id})
+    if(!error){setShowAbsence(false);loadMyTimeOff()}
+    return error
+  }
+  const delMyTimeOff=async id=>{await supabase.from('time_off').delete().eq('id',id);loadMyTimeOff()}
 
   const loadDay=useCallback(async d=>{
     const dk=toK(d)
@@ -1151,7 +1225,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
     {/* Tabs */}
     <div style={{display:'flex',background:'var(--white)',borderBottom:'1px solid var(--border)',padding:'0 16px',overflowX:'auto'}}>
       {(isBarberMode
-        ?[['cal','📅 Calendario'],['horario','🕐 Mi horario'],['bloqueos','🚫 Mis bloqueos']]
+        ?[['cal','📅 Calendario'],['horario','🕐 Mi horario'],['bloqueos','🚫 Mis bloqueos'],['ausencias','🌴 Mis ausencias']]
         :[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['compartir','🔗 Compartir']]
       ).map(([id,l])=>
         <button key={id} onClick={()=>setTab(id)} style={{padding:'13px 12px',fontFamily:'inherit',fontSize:12,fontWeight:600,background:'none',border:'none',cursor:'pointer',color:tab===id?'var(--purple)':'var(--text3)',borderBottom:tab===id?'2.5px solid var(--purple)':'2.5px solid transparent',whiteSpace:'nowrap'}}>{l}</button>
@@ -1321,6 +1395,29 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
           </div>
           <button onClick={()=>rmBlock(b.id)} style={{fontSize:11,color:'var(--red)',background:'none',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Quitar</button>
         </div>)}
+      </div>}
+
+      {/* ── MIS AUSENCIAS (barber mode) ── */}
+      {tab==='ausencias'&&isBarberMode&&<div>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+          <div><h2 style={{fontSize:16,fontWeight:700}}>Mis ausencias</h2><p style={{fontSize:12,color:'var(--text3)'}}>El administrador debe aprobarlas</p></div>
+          <Bt small onClick={()=>setShowAbsence(true)}>+ Solicitar</Bt>
+        </div>
+        {myTO.length===0&&<Em icon="🌴" text="No tienes ausencias próximas"/>}
+        {myTO.map(t=>{
+          const icon={vacation:'🌴',sick:'🤒',personal:'🙍',other:'📝'}[t.type]||'📝'
+          const range=t.start_date===t.end_date?fS(parseDate(t.start_date)):`${fS(parseDate(t.start_date))} – ${fS(parseDate(t.end_date))}`
+          return<div key={t.id} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:12,marginBottom:8,boxShadow:'var(--shadow)'}}>
+            <span style={{fontSize:18}}>{icon}</span>
+            <div style={{flex:1}}>
+              <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{range}</div>
+              <div style={{fontSize:11,color:'var(--text3)'}}>{t.all_day?'Todo el día':`${t.start_time?.slice(0,5)}–${t.end_time?.slice(0,5)}`}{t.reason?` · ${t.reason}`:''}</div>
+            </div>
+            <Bg color={t.approved?'var(--green)':'var(--orange)'} bg={t.approved?'var(--green-bg)':'var(--orange-bg)'}>{t.approved?'Aprobada':'Pendiente'}</Bg>
+            {!t.approved&&<button onClick={()=>delMyTimeOff(t.id)} style={{fontSize:11,color:'var(--red)',background:'none',border:'1px solid rgba(239,68,68,0.2)',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Quitar</button>}
+          </div>
+        })}
+        {showAbsence&&<MyAbsenceModal onSubmit={addMyTimeOff} onClose={()=>setShowAbsence(false)}/>}
       </div>}
     </div>
 
