@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from './supabase'
+import { toK, aM, gS } from './timeUtils.js'
+import { getSlotsForDay } from './availability.js'
 
 // ═══ CSS ══════════════════════════════════════════════════════════════════════
 const CSS = `
@@ -35,15 +37,12 @@ const dayLong = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
 const dayF = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado']
 const MO = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre']
 const MS = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic']
-const toK = d => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
 const isT = d => toK(d) === toK(new Date())
 const isP = d => { const t = new Date(); t.setHours(0,0,0,0); return d < t }
 const fD = d => `${d.getDate()} de ${MO[d.getMonth()]}`
 const fDF = d => `${dayF[d.getDay()]}, ${fD(d)}`
 const fS = d => `${d.getDate()} ${MS[d.getMonth()]}`
 const parseDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d) }
-const aM = (t,m) => { let [h,mi]=t.split(':').map(Number); mi+=m; while(mi>=60){h++;mi-=60} return `${String(h).padStart(2,'0')}:${String(mi).padStart(2,'0')}` }
-const gS = (o='09:00',c='20:00',step=30) => { const s=[]; let [h,m]=o.split(':').map(Number); const [ch,cm]=c.split(':').map(Number); while(h<ch||(h===ch&&m<cm)){s.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);m+=step;if(m>=60){h++;m-=60}} return s }
 const gMD = (y,m) => { const f=new Date(y,m,1),l=new Date(y,m+1,0); let s=f.getDay()-1; if(s<0)s=6; const d=[]; for(let i=0;i<s;i++)d.push(null); for(let i=1;i<=l.getDate();i++)d.push(new Date(y,m,i)); return d }
 const svcIcon = n => { const s=(n||'').toLowerCase(); if(s.includes('barba'))return'🪒'; if(s.includes('ceja'))return'✦'; if(s.includes('color')||s.includes('mecha'))return'🎨'; return'✂️' }
 
@@ -55,51 +54,6 @@ const alvaroEffDur = (sty, svc) => {
   const isAlvaro=styName.includes('álvaro')||styName.includes('alvaro')
   const isQuickSvc=svcName.includes('corte')||svcName.includes('barba')
   return (isAlvaro&&isQuickSvc) ? 30 : svc.duration
-}
-
-// Dado un barbero y una fecha, calcula sus slots libres teniendo en cuenta
-// su horario semanal fijo (stylist_schedules) + bloqueos puntuales + horario del salón
-const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, svcDuration, salonSchedule=[]) => {
-  const dow = date.getDay() // 0=Dom,1=Lun,...,6=Sáb
-  if(dow === 0) return [] // Domingo siempre cerrado
-
-  // Horario del salón para este día
-  const salSched = salonSchedule.find(s => s.day_of_week === dow)
-  if(salSched && !salSched.active) return [] // Salón cerrado este día
-
-  // Horario fijo del barbero para este día de semana (1=Lun...6=Sáb)
-  const sched = schedules.find(s => s.stylist_id === stylistId && s.day_of_week === dow)
-  if(sched && !sched.active) return []
-
-  // Horario efectivo: barbero > salón > fallback
-  const dayOpen = sched ? sched.start_time.slice(0,5) : (salSched ? salSched.open_time.slice(0,5) : '09:00')
-  const dayClose = sched ? sched.end_time.slice(0,5) : (salSched ? salSched.close_time.slice(0,5) : (dow === 6 ? '14:00' : '20:00'))
-
-  // Break del salón
-  const breakStart = salSched?.break_start ? salSched.break_start.slice(0,5) : null
-  const breakEnd = salSched?.break_end ? salSched.break_end.slice(0,5) : null
-
-  const allSlots = gS(dayOpen, dayClose)
-  const dk = toK(date)
-  const taken = new Set()
-
-  appointments
-    .filter(a => a.appointment_date === dk && a.stylist_id === stylistId)
-    .forEach(a => { let c = a.appointment_time.slice(0,5); const e = a.end_time.slice(0,5); while(c<e){taken.add(c);c=aM(c,30)} })
-
-  blockedSlots
-    .filter(b => b.blocked_date === dk && b.stylist_id === stylistId)
-    .forEach(b => { let c = b.start_time.slice(0,5); const e = b.end_time.slice(0,5); while(c<e){taken.add(c);c=aM(c,30)} })
-
-  return allSlots.filter(s => {
-    const end = aM(s, svcDuration)
-    if(end > dayClose) return false
-    // Excluir slots que solapan con el break
-    if(breakStart && breakEnd && s < breakEnd && end > breakStart) return false
-    let c = s
-    while(c < end){ if(taken.has(c)) return false; c = aM(c,30) }
-    return true
-  })
 }
 
 const HERO = ['images/hero-1.jpg','images/hero-2.jpg','images/hero-3.jpg','images/hero-4.jpg']
@@ -264,7 +218,7 @@ function PWAPrompt({ onClose }) {
   )
 }
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
-function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[]}) {
+function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[]}) {
   const [hi,setHi]=useState(0)
   const [tab,setTab]=useState('servicios')
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
@@ -277,10 +231,11 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
   const hr=(spH===24?0:spH)+spM/60
   const tF=t=>{ const[h,m]=t.slice(0,5).split(':').map(Number);return h+m/60 }
   const salSched=salonSchedule.find(s=>s.day_of_week===dow)
-  const isOpen=salSched
+  const closedToday=closures.some(c=>c.start_date<=toK(new Date())&&toK(new Date())<=c.end_date)
+  const isOpen=!closedToday&&(salSched
     ? salSched.active&&hr>=tF(salSched.open_time)&&hr<tF(salSched.close_time)
       &&!(salSched.break_start&&salSched.break_end&&hr>=tF(salSched.break_start)&&hr<tF(salSched.break_end))
-    : (dow>=1&&dow<=5?hr>=9&&hr<20:dow===6?hr>=9&&hr<14:false)
+    : (dow>=1&&dow<=5?hr>=9&&hr<20:dow===6?hr>=9&&hr<14:false))
   const pop=svcs.filter(s=>s.category==='popular')
   const oth=svcs.filter(s=>s.category!=='popular')
   const addr=salonConfig?.address||'C/ José Pellicer, 29, Zaragoza'
@@ -481,7 +436,7 @@ function Auth({onLogin,onBack}) {
 }
 
 // ═══ BOOKING ══════════════════════════════════════════════════════════════════
-function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
+function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[],closures=[]}) {
   const [step,setStep]=useState(pre?1:0)
   const [svc,setSvc]=useState(pre),[sty,setSty]=useState(null)
   const [date,setDate]=useState(null),[time,setTime]=useState(null)
@@ -492,10 +447,14 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
   const [monthAvail,setMonthAvail]=useState({})
   const [dayData,setDayData]=useState({bd:[],bl:[]})
   const [schedules,setSchedules]=useState([])
+  const [timeOff,setTimeOff]=useState([])
+  const [overrides,setOverrides]=useState([])
 
-  // Cargar horarios fijos una vez
+  // Cargar horarios fijos, ausencias aprobadas y excepciones de turno una vez
   useEffect(()=>{
     supabase.from('stylist_schedules').select('*').then(({data})=>setSchedules(data||[]))
+    supabase.from('time_off_public').select('*').then(({data})=>setTimeOff(data||[]))
+    supabase.from('schedule_overrides').select('*').then(({data})=>setOverrides(data||[]))
   },[])
 
   // Disponibilidad mensual (tiene en cuenta horario fijo)
@@ -511,19 +470,17 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
       const avail={},daysInMonth=new Date(cY,cM+1,0).getDate()
       for(let i=1;i<=daysInMonth;i++){
         const d=new Date(cY,cM,i)
-        if(d.getDay()===0){avail[toK(d)]='none';continue}
-        const maxFree=Math.max(...stys.map(s=>getSlotsForDay(d,s.id,schedules,
-        (bd||[]),
-       (bl||[]),
-        alvaroEffDur(s,svc),
-        salonSchedule
-        ).length))
+        const sal=salonSchedule.find(s=>s.day_of_week===d.getDay())
+        const closed=(sal&&!sal.active)||closures.some(c=>c.start_date<=toK(d)&&toK(d)<=c.end_date)
+        if(closed){avail[toK(d)]='none';continue}
+        const maxFree=Math.max(...stys.map(s=>getSlotsForDay(d,s.id,schedules,(bd||[]),(bl||[]),
+          alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).length))
        const free=maxFree
         avail[toK(d)]=free>10?'green':free>5?'yellow':free>0?'orange':'none'
       }
       setMonthAvail(avail)
     })()
-  },[cM,cY,stys,schedules,svc])
+  },[cM,cY,stys,schedules,svc,timeOff,closures,overrides])
 
   // Barbero favorito
   useEffect(()=>{
@@ -540,14 +497,14 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[]}) {
   supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('blocked_date',dk),
   supabase.from('appointments').select('appointment_time,end_time').eq('appointment_date',dk).eq('user_id',user.id).eq('status','confirmed'),
 ])
-const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule))
+const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides))
 const userTaken=new Set();(mine||[]).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
 const unionSlots=[...new Set(allSlotSets.flat())].filter(s=>!userTaken.has(s)).sort()
 setDayData({bd:bd||[],bl:bl||[]})
 setSlots(unionSlots)
       setSL(false)
     })()
-  },[date,sty,svc,schedules])
+  },[date,sty,svc,schedules,timeOff,closures,overrides])
 
   const confirm=async()=>{
     if(!svc||!sty||!date||!time)return;setBk(true);setBookErr('')
@@ -584,7 +541,7 @@ setSlots(unionSlots)
     {step===2&&<div style={{background:'var(--white)',padding:20}}>
       <h2 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Elige profesional</h2>
       <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:6}}>
-        {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc)).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
+        {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
           <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(124,58,237,0.32)':'none'}}>
             {s.photo_url?<img src={s.photo_url} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:s.name[0]}
           </div>
@@ -610,12 +567,14 @@ setSlots(unionSlots)
         <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2}}>
           {days.map((d,i)=>{
             if(!d)return<div key={'e'+i}/>
-            const dk=toK(d),sl=date&&toK(date)===dk,past=isP(d),sun=d.getDay()===0
+            const dk=toK(d),sl=date&&toK(date)===dk,past=isP(d)
+            const salD=salonSchedule.find(x=>x.day_of_week===d.getDay())
+            const closedDay=(salD&&!salD.active)||closures.some(c=>c.start_date<=dk&&dk<=c.end_date)
             const av=monthAvail[dk]
             const avC=av==='green'?'var(--green)':av==='yellow'?'var(--yellow)':av==='orange'?'var(--orange)':null
-            return<button key={dk} onClick={()=>!past&&!sun&&setDate(d)} disabled={past||sun} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,height:46,borderRadius:10,border:'none',cursor:past||sun?'default':'pointer',background:sl?'linear-gradient(135deg,var(--purple),var(--purple-l))':isT(d)?'var(--purple-bg)':'transparent',opacity:past||sun?0.22:1,transition:'all .15s'}}>
+            return<button key={dk} onClick={()=>!past&&!closedDay&&setDate(d)} disabled={past||closedDay} style={{display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,height:46,borderRadius:10,border:'none',cursor:past||closedDay?'default':'pointer',background:sl?'linear-gradient(135deg,var(--purple),var(--purple-l))':isT(d)?'var(--purple-bg)':'transparent',opacity:past||closedDay?0.22:1,transition:'all .15s'}}>
               <span style={{fontSize:12,fontWeight:sl||isT(d)?700:400,color:sl?'#fff':'var(--text)',lineHeight:1}}>{d.getDate()}</span>
-              {avC&&!past&&!sun&&<div style={{width:18,height:3,borderRadius:2,background:sl?'rgba(255,255,255,0.65)':avC}}/>}
+              {avC&&!past&&!closedDay&&<div style={{width:18,height:3,borderRadius:2,background:sl?'rgba(255,255,255,0.65)':avC}}/>}
             </button>
           })}
         </div>
@@ -1425,15 +1384,17 @@ export default function App() {
   const [lb,setLb]=useState(null),[ps,setPs]=useState(null)
   const [salonConfig,setSalonConfig]=useState(null)
   const [salonSchedule,setSalonSchedule]=useState([])
+  const [salonClosures,setSalonClosures]=useState([])
 
   const loadPublic=async()=>{
-    const [{data:sv},{data:st},{data:sc},{data:ss}]=await Promise.all([
+    const [{data:sv},{data:st},{data:sc},{data:ss},{data:cl}]=await Promise.all([
       supabase.from('services').select('*').eq('active',true).order('display_order'),
       supabase.from('stylists').select('*').eq('active',true).order('display_order'),
       supabase.from('salon_config').select('*').limit(1).maybeSingle(),
       supabase.from('salon_schedule').select('*').order('day_of_week'),
+      supabase.from('salon_closures').select('start_date,end_date,reason'),
     ])
-    setSvcs(sv||[]);setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[])
+    setSvcs(sv||[]);setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[]);setSalonClosures(cl||[])
   }
 
   useEffect(()=>{
@@ -1475,9 +1436,9 @@ if ((isIOS || isAndroid) && !alreadyPrompted) {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(109,40,217,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
-    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule}/>}
+    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures}/>}
     {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')}/>}
-    {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule}/>}
+    {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule} closures={salonClosures}/>}
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
     {view==='admin'&&user&&isA&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
