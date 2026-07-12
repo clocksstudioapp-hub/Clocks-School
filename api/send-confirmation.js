@@ -29,6 +29,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
   }
 
+  // ── Auth gate: solo el dueño de la cita (o staff) puede disparar el email.
+  // El endpoint corre con service_role, así que sin esto cualquiera podría
+  // agotar la cuota de Gmail o bombardear a un cliente (SEC-001).
+  const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
+  if (!token) return res.status(401).json({ ok: false, error: 'unauthorized' })
+  const { data: authData, error: authErr } = await supabase.auth.getUser(token)
+  const caller = authData?.user
+  if (authErr || !caller) return res.status(401).json({ ok: false, error: 'unauthorized' })
+
   const { appointmentId } = req.body || {}
   if (!appointmentId) {
     return res.status(400).json({ ok: false, error: 'appointmentId requerido' })
@@ -43,6 +52,15 @@ export default async function handler(req, res) {
 
     if (apptErr || !appt) {
       return res.status(404).json({ ok: false, error: 'Cita no encontrada' })
+    }
+
+    // Debe ser el dueño de la cita o personal (admin/barber).
+    if (appt.user_id !== caller.id) {
+      const { data: prof } = await supabase
+        .from('profiles').select('role').eq('id', caller.id).single()
+      if (!prof || !['admin', 'barber'].includes(prof.role)) {
+        return res.status(403).json({ ok: false, error: 'forbidden' })
+      }
     }
 
     const { data: userData, error: userErr } = await supabase.auth.admin.getUserById(appt.user_id)

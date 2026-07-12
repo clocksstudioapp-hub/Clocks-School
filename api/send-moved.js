@@ -24,13 +24,31 @@ function fechaLegible(fecha) {
 }
 
 export default async function handler(req, res) {
-  // CORS: el panel admin vive en otro dominio de Vercel
-  res.setHeader('Access-Control-Allow-Origin', '*')
+  // CORS: el panel admin vive en otro dominio de Vercel. Restringido al origen
+  // del panel (ADMIN_ORIGIN); ya no se refleja "*".
+  const adminOrigin = process.env.ADMIN_ORIGIN || ''
+  const origin = req.headers.origin || ''
+  if (adminOrigin && origin === adminOrigin) {
+    res.setHeader('Access-Control-Allow-Origin', adminOrigin)
+  }
+  res.setHeader('Vary', 'Origin')
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization')
   if (req.method === 'OPTIONS') return res.status(204).end()
   if (req.method !== 'POST') {
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
+  }
+
+  // ── Auth gate: solo personal (admin/barber) puede mover citas y notificar.
+  const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
+  if (!token) return res.status(401).json({ ok: false, error: 'unauthorized' })
+  const { data: authData, error: authErr } = await supabase.auth.getUser(token)
+  const caller = authData?.user
+  if (authErr || !caller) return res.status(401).json({ ok: false, error: 'unauthorized' })
+  const { data: callerProf } = await supabase
+    .from('profiles').select('role').eq('id', caller.id).single()
+  if (!callerProf || !['admin', 'barber'].includes(callerProf.role)) {
+    return res.status(403).json({ ok: false, error: 'forbidden' })
   }
 
   const { appointmentId } = req.body || {}

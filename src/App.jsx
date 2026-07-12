@@ -298,6 +298,7 @@ function ResetPasswordForm({onDone}) {
 function Auth({onLogin,onBack}) {
   const [m,setM]=useState('login'),[em,setEm]=useState(''),[pw,setPw]=useState(''),[nm,setNm]=useState(''),[ph,setPh]=useState(''),[ld,setLd]=useState(false),[er,setEr]=useState('')
   const [resetSent,setResetSent]=useState(false)
+  const [consent,setConsent]=useState(false),[showPrivacy,setShowPrivacy]=useState(false)
   const sendReset=async()=>{
     if(!em.trim()){setEr('Introduce tu email primero');return}
     setLd(true);setEr('')
@@ -312,6 +313,7 @@ function Auth({onLogin,onBack}) {
       if(m==='register'){
         if(!nm.trim()||!em.trim()||!pw.trim()){setEr('Rellena los campos obligatorios');setLd(false);return}
         if(pw.length<6){setEr('Mínimo 6 caracteres');setLd(false);return}
+        if(!consent){setEr('Debes aceptar la política de privacidad para crear una cuenta');setLd(false);return}
         const {data,error:e}=await supabase.auth.signUp({email:em.trim(),password:pw,options:{data:{full_name:nm.trim(),phone:ph.trim()}}})
         if(e)throw e; if(data.user)onLogin(data.user)
       } else {
@@ -347,6 +349,10 @@ function Auth({onLogin,onBack}) {
       </>}
       <In label="Email" required type="email" value={em} onChange={e=>setEm(e.target.value)} placeholder="tu@email.com"/>
       <In label="Contraseña" required type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder={m==='register'?'Mínimo 6 caracteres':'••••••••'}/>
+      {m==='register'&&<label style={{display:'flex',alignItems:'flex-start',gap:9,marginBottom:14,cursor:'pointer'}}>
+        <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:2,width:16,height:16,accentColor:'var(--purple)',flexShrink:0,cursor:'pointer'}}/>
+        <span style={{fontSize:12,color:'var(--text2)',lineHeight:1.5}}>He leído y acepto la <button type="button" onClick={()=>setShowPrivacy(true)} style={{fontFamily:'inherit',fontSize:12,color:'var(--purple)',background:'none',border:'none',padding:0,cursor:'pointer',fontWeight:700,textDecoration:'underline'}}>política de privacidad</button> y el tratamiento de mis datos para gestionar mis reservas.</span>
+      </label>}
       {er&&<div style={{padding:'11px 14px',background:'var(--red-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(239,68,68,0.12)'}}><p style={{fontSize:13,color:'var(--red)',fontWeight:500}}>{er}</p></div>}
       {resetSent&&<div style={{padding:'11px 14px',background:'var(--green-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(34,197,94,0.15)'}}><p style={{fontSize:13,color:'var(--green)',fontWeight:600}}>✅ Revisa tu email — te hemos enviado un enlace para restablecer la contraseña.</p></div>}
       <Bt full onClick={sub} disabled={ld}>{ld?'Cargando...':m==='register'?'Crear cuenta':'Entrar'}</Bt>
@@ -358,6 +364,19 @@ function Auth({onLogin,onBack}) {
         </button>
       </p>
     </div>
+    {showPrivacy&&<Modal>
+      <h3 style={{fontSize:18,fontWeight:800,marginBottom:14,color:'var(--text)'}}>Política de privacidad</h3>
+      <div style={{fontSize:13,color:'var(--text2)',lineHeight:1.65,maxHeight:'52vh',overflowY:'auto',marginBottom:16}}>
+        <p style={{marginBottom:10}}><strong>Responsable:</strong> Clocks School (Zaragoza). Para consultas sobre tus datos escribe al salón.</p>
+        <p style={{marginBottom:10}}><strong>Datos que tratamos:</strong> nombre, teléfono, email e historial de tus citas.</p>
+        <p style={{marginBottom:10}}><strong>Finalidad:</strong> gestionar tus reservas y enviarte confirmaciones y recordatorios.</p>
+        <p style={{marginBottom:10}}><strong>Base legal:</strong> la ejecución de la reserva que solicitas y tu consentimiento.</p>
+        <p style={{marginBottom:10}}><strong>Encargados:</strong> Supabase y Vercel (alojamiento) y Google (envío de emails).</p>
+        <p style={{marginBottom:10}}><strong>Tus derechos:</strong> acceso, rectificación, supresión y oposición, solicitándolo al salón.</p>
+        <p style={{color:'var(--text3)',fontSize:12,fontStyle:'italic'}}>Este texto es un borrador base. El negocio debe revisarlo y completarlo con sus datos fiscales y de contacto antes del lanzamiento.</p>
+      </div>
+      <Bt full onClick={()=>setShowPrivacy(false)}>Entendido</Bt>
+    </Modal>}
   </div>
 }
 
@@ -439,8 +458,11 @@ setSlots(unionSlots)
     setBk(false)
     if(error){setBookErr(error.message||'Error al guardar la reserva. Inténtalo de nuevo.')}
     else{
-      // fire-and-forget: el email no debe bloquear ni romper la reserva
-      fetch('/api/send-confirmation',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({appointmentId:data.id})}).catch(()=>{})
+      // fire-and-forget: el email no debe bloquear ni romper la reserva.
+      // Enviamos el JWT para que el endpoint valide la propiedad de la cita (SEC-001).
+      supabase.auth.getSession().then(({data:{session}})=>{
+        fetch('/api/send-confirmation',{method:'POST',headers:{'Content-Type':'application/json',...(session?.access_token?{Authorization:`Bearer ${session.access_token}`}:{})},body:JSON.stringify({appointmentId:data.id})}).catch(()=>{})
+      })
       onDone({service:svc,stylist:sty,date,time})
     }
   }
@@ -539,6 +561,7 @@ setSlots(unionSlots)
 // ═══ ACCOUNT ══════════════════════════════════════════════════════════════════
 function Account({user,profile,stys,onBook,onLogout,onBack,onUp}) {
   const [tab,setTab]=useState('upcoming'),[up,setUp]=useState([]),[hist,setHist]=useState([]),[ld,setLd]=useState(true)
+  const [cancelling,setCancelling]=useState(null)
   const load=useCallback(async()=>{
     const td=toK(new Date())
     const [{data:u},{data:h}]=await Promise.all([
@@ -548,9 +571,16 @@ function Account({user,profile,stys,onBook,onLogout,onBack,onUp}) {
     setUp(u||[]);setHist(h||[]);setLd(false)
   },[user.id])
   useEffect(()=>{load()},[load])
-  const cancel=async id=>{await supabase.from('appointments').update({status:'cancelled',cancelled_by:'client'}).eq('id',id);load()}
-  const setFav=async sid=>{const v=profile?.favorite_stylist_id===sid?null:sid;await supabase.from('profiles').update({favorite_stylist_id:v}).eq('id',user.id);onUp({...profile,favorite_stylist_id:v})}
-  const togR=async()=>{const v=!profile?.email_reminders;await supabase.from('profiles').update({email_reminders:v}).eq('id',user.id);onUp({...profile,email_reminders:v})}
+  const cancel=async id=>{
+    if(cancelling)return
+    setCancelling(id)
+    const{error}=await supabase.from('appointments').update({status:'cancelled',cancelled_by:'client'}).eq('id',id)
+    setCancelling(null)
+    if(error){alert('No se pudo cancelar la cita. Inténtalo de nuevo.');return}
+    load()
+  }
+  const setFav=async sid=>{const v=profile?.favorite_stylist_id===sid?null:sid;const{error}=await supabase.from('profiles').update({favorite_stylist_id:v}).eq('id',user.id);if(error)return;onUp({...profile,favorite_stylist_id:v})}
+  const togR=async()=>{const v=!profile?.email_reminders;const{error}=await supabase.from('profiles').update({email_reminders:v}).eq('id',user.id);if(error)return;onUp({...profile,email_reminders:v})}
   const ini=(profile?.full_name||'?').split(' ').map(n=>n[0]).join('').toUpperCase()
   if(ld)return<Sp/>
   return <div>
@@ -587,7 +617,7 @@ function Account({user,profile,stys,onBook,onLogout,onBack,onUp}) {
                 <div style={{fontSize:14,color:'var(--purple)',fontWeight:700}}>{a.appointment_time?.slice(0,5)}h</div>
               </div>
             </div>
-            <div style={{display:'flex',justifyContent:'flex-end'}}><Bt small variant="danger" onClick={()=>cancel(a.id)}>Cancelar cita</Bt></div>
+            <div style={{display:'flex',justifyContent:'flex-end'}}><Bt small variant="danger" disabled={cancelling===a.id} onClick={()=>cancel(a.id)}>{cancelling===a.id?'Cancelando...':'Cancelar cita'}</Bt></div>
           </div>
         )}</div>
       )}
