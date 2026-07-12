@@ -74,6 +74,18 @@ create trigger trg_appt_integrity
 revoke all on function public.check_appt_integrity() from public, anon, authenticated;
 
 -- ----------------------------------------------------------------------------
+-- RLS-004 (hallazgo de verificación en BD viva): la vista `time_off_public` es
+-- auto-actualizable y NO es security_invoker, y anon/authenticated tenían
+-- concedidos INSERT/UPDATE/DELETE/TRUNCATE sobre ella (herencia del estado
+-- pre-remediación). Eso permitía a un ANÓNIMO borrar/alterar ausencias en la
+-- tabla base `time_off` a través de la vista, puenteando el RLS. Dejamos solo
+-- SELECT (que es la finalidad de la vista: columnas no sensibles y aprobadas).
+-- ----------------------------------------------------------------------------
+revoke insert, update, delete, truncate, references, trigger
+  on public.time_off_public from anon, authenticated;
+grant select on public.time_off_public to anon, authenticated;
+
+-- ----------------------------------------------------------------------------
 -- Constraints de integridad de datos (FASE 7). NOT VALID para no fallar sobre
 -- datos existentes; aplican a toda escritura futura. Valídalas después con
 -- `alter table ... validate constraint ...` si los datos actuales cumplen.
