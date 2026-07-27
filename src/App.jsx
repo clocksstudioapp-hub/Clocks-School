@@ -607,6 +607,13 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
   const [consent,setConsent]=useState(false)
   const [ld,setLd]=useState(false),[er,setEr]=useState('')
 
+  // Los equipos llegan async desde App (loadPublic); si el formulario se monta
+  // antes de que carguen, el estado inicial de teamId se queda vacío para
+  // siempre. Lo sincronizamos en cuanto la lista deja de estar vacía.
+  useEffect(()=>{
+    if(!teamId&&teams.length)setTeamId(teams[0].id)
+  },[teams])
+
   const activate=async()=>{
     if(!teamId){setEr('Selecciona tu equipo');return}
     setLd(true);setEr('')
@@ -659,11 +666,13 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
           <span style={{fontSize:12,color:'var(--text2)',lineHeight:1.5}}>He leído y acepto la política de privacidad y el tratamiento de mis datos para gestionar mis reservas.</span>
         </label>
       </>}
-      <Sl label="Tu equipo" value={teamId} onChange={e=>setTeamId(e.target.value)}>
-        {teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+      <Sl label="Tu equipo" value={teamId} onChange={e=>setTeamId(e.target.value)} disabled={teams.length===0}>
+        {teams.length===0
+          ? <option value="">Cargando equipos…</option>
+          : teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
       </Sl>
       {er&&<div style={{padding:'11px 14px',background:'var(--red-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(239,68,68,0.12)'}}><p style={{fontSize:13,color:'var(--red)',fontWeight:500}}>{er}</p></div>}
-      <Bt full onClick={isActivateMode?activate:registerAndActivate} disabled={ld} style={{background:'linear-gradient(135deg,#F26A21,#D9560F)',boxShadow:'0 4px 16px rgba(242,106,33,0.38)'}}>
+      <Bt full onClick={isActivateMode?activate:registerAndActivate} disabled={ld||!teamId} style={{background:'linear-gradient(135deg,#F26A21,#D9560F)',boxShadow:'0 4px 16px rgba(242,106,33,0.38)'}}>
         {ld?'Procesando...':isActivateMode?'Activar mi tarjeta':'Crear cuenta y activar tarjeta'}
       </Bt>
     </div>
