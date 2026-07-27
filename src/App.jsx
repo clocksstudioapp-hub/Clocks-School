@@ -199,10 +199,11 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
   </div>
 }
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
-function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[]}) {
+function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[],cfTeams=[],cfService=null,initialTab}) {
   const [hi,setHi]=useState(0)
   const [logoOk,setLogoOk]=useState(true)
-  const [tab,setTab]=useState('servicios')
+  const [tab,setTab]=useState(initialTab||'servicios')
+  const isPlayer=profile?.role==='player'
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
 
   const spainParts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date())
@@ -226,13 +227,15 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
 
   return <div style={{paddingBottom:88}}>
     <div style={{position:'relative',height:260,overflow:'hidden',background:'#D3D3EE'}}>
-      {HERO.map((src,i)=><div key={i} style={{position:'absolute',inset:0,opacity:hi===i?1:0,transition:'opacity .85s'}}>
-        <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.style.background=`hsl(${260+i*15},25%,${65+i*4}%)`}}/>
-      </div>)}
+      {tab==='juventud'
+        ? <img src="/images/hero-juventud.png" alt="Colaboración CF Juventud" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+        : HERO.map((src,i)=><div key={i} style={{position:'absolute',inset:0,opacity:hi===i?1:0,transition:'opacity .85s'}}>
+            <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.style.background=`hsl(${260+i*15},25%,${65+i*4}%)`}}/>
+          </div>)}
       <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(83,85,159,0.08) 0%,rgba(83,85,159,0.55) 100%)'}}/>
-      <div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',display:'flex',gap:6,zIndex:3}}>
+      {tab!=='juventud'&&<div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',display:'flex',gap:6,zIndex:3}}>
         {HERO.map((_,i)=><button key={i} onClick={()=>setHi(i)} style={{width:hi===i?20:6,height:6,borderRadius:3,border:'none',cursor:'pointer',background:'#fff',opacity:hi===i?1:0.5,transition:'all .3s'}}/>)}
-      </div>
+      </div>}
       {user&&<button onClick={onAcc} style={{position:'absolute',top:14,left:14,zIndex:3,width:36,height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)'}}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </button>}
@@ -260,7 +263,7 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
     </div>
 
     <div style={{display:'flex',background:'var(--white)',borderBottom:'1px solid var(--border)',padding:'0 20px',overflowX:'auto'}}>
-      {[['servicios','SERVICIOS'],['equipo','EQUIPO'],['portafolio','PORTAFOLIO'],['detalles','DETALLES']].map(([id,lbl])=>
+      {[['servicios','SERVICIOS'],['equipo','EQUIPO'],['portafolio','PORTAFOLIO'],['detalles','DETALLES'],...(isPlayer||isA?[['juventud','CF JUVENTUD']]:[])].map(([id,lbl])=>
         <button key={id} onClick={()=>setTab(id)} style={{padding:'14px 0',marginRight:24,fontSize:11,fontWeight:700,letterSpacing:'0.07em',color:tab===id?'var(--purple)':'var(--text3)',borderBottom:tab===id?'2.5px solid var(--purple)':'2.5px solid transparent',background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',fontFamily:'inherit'}}>{lbl}</button>
       )}
     </div>
@@ -313,6 +316,10 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
       })()}
     </div>}
 
+    {tab==='juventud'&&(isPlayer||isA)&&<div style={{padding:16}}>
+      <CFJuventudTab user={user} profile={profile} isA={isA} cfService={cfService} cfTeams={cfTeams} onRes={onRes}/>
+    </div>}
+
     <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 18px',zIndex:50}}>
       <button onClick={()=>onRes(null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 6px 20px rgba(105,107,198,0.42)'}}>
         Reservar cita
@@ -320,6 +327,147 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
       </button>
     </div>
   </div>
+}
+
+// ═══ CF JUVENTUD TAB ═══════════════════════════════════════════════════════
+const CF_ORANGE='#F26A21', CF_ORANGE_D='#D9560F'
+const monthRange=d=>{const y=d.getFullYear(),m=d.getMonth();return[toK(new Date(y,m,1)),toK(new Date(y,m+1,0))]}
+
+function CFJuventudTab({user,profile,isA,cfService,cfTeams,onRes}) {
+  if(isA) return <CFJuventudAdminPanel cfService={cfService} cfTeams={cfTeams}/>
+
+  const [status,setStatus]=useState('loading') // 'loading' | 'available' | 'used'
+  const team=cfTeams.find(t=>t.id===profile?.team_id)
+
+  useEffect(()=>{
+    if(!cfService||!user){setStatus('available');return}
+    const[from,to]=monthRange(new Date())
+    supabase.from('appointments').select('id').eq('user_id',user.id).eq('service_id',cfService.id).eq('status','confirmed')
+      .gte('appointment_date',from).lte('appointment_date',to).maybeSingle()
+      .then(({data})=>setStatus(data?'used':'available'))
+  },[cfService,user])
+
+  return <div>
+    <div style={{maxWidth:340,margin:'0 auto',borderRadius:18,overflow:'hidden',boxShadow:'var(--shadow-md)'}}>
+      <img src="/images/banner-juventud.png" alt="Clocks School × C.F. Santo Domingo Juventud" style={{width:'100%',display:'block'}}/>
+      <div style={{background:'var(--white)',padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
+        <div style={{minWidth:0}}>
+          <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{profile?.full_name}</div>
+          <div style={{fontSize:12,color:'var(--text3)'}}>{team?.name||'—'}</div>
+        </div>
+        {status==='loading'
+          ?<span style={{fontSize:12,color:'var(--text3)'}}>Cargando…</span>
+          :status==='available'
+            ?<span style={{background:'rgba(34,197,94,0.12)',color:'var(--green)',padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:800,whiteSpace:'nowrap'}}>✓ Corte disponible</span>
+            :<span style={{background:'rgba(156,163,175,0.15)',color:'var(--text3)',padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:800,whiteSpace:'nowrap'}}>Ya usado · vuelve el 1</span>}
+      </div>
+    </div>
+    {status==='available'&&cfService&&<button onClick={()=>onRes(cfService)} style={{width:'100%',maxWidth:340,margin:'14px auto 0',display:'block',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:`linear-gradient(135deg,${CF_ORANGE},${CF_ORANGE_D})`,border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',boxShadow:'0 6px 20px rgba(242,106,33,0.42)'}}>
+      Reservar mi corte gratis
+    </button>}
+  </div>
+}
+
+// ═══ CF JUVENTUD — PANEL ADMIN (también en clocks-admin) ═══
+const exportCSVLocal=(rows,filename)=>{
+  if(rows.length===0)return
+  const header=Object.keys(rows[0]).join(';')
+  const csv=header+'\n'+rows.map(r=>Object.values(r).join(';')).join('\n')
+  const blob=new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8;'})
+  const url=URL.createObjectURL(blob)
+  const a=document.createElement('a');a.href=url;a.download=filename+'.csv';a.click()
+  URL.revokeObjectURL(url)
+}
+
+function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
+  const [players,setPlayers]=useState([])
+  const [redeemedIds,setRedeemedIds]=useState(new Set())
+  const [teams,setTeams]=useState(initialTeams)
+  const [ld,setLd]=useState(true)
+  const [editTeam,setEditTeam]=useState(null)
+
+  const load=useCallback(async()=>{
+    setLd(true)
+    const[{data:pl},{data:tm}]=await Promise.all([
+      supabase.from('profiles').select('id,full_name,team_id').eq('role','player').order('full_name'),
+      supabase.from('cf_teams').select('*').order('display_order'),
+    ])
+    setPlayers(pl||[]);setTeams(tm||[])
+    if(cfService){
+      const[from,to]=monthRange(new Date())
+      const{data:red}=await supabase.from('appointments').select('user_id').eq('service_id',cfService.id).eq('status','confirmed').gte('appointment_date',from).lte('appointment_date',to)
+      setRedeemedIds(new Set((red||[]).map(r=>r.user_id)))
+    }
+    setLd(false)
+  },[cfService])
+  useEffect(()=>{load()},[load])
+
+  const saveTeam=async d=>{
+    if(d.id)await supabase.from('cf_teams').update({name:d.name,active:d.active}).eq('id',d.id)
+    else{const mx=teams.reduce((m,t)=>Math.max(m,t.display_order||0),0);await supabase.from('cf_teams').insert({name:d.name,active:d.active,display_order:mx+1})}
+    setEditTeam(null);load()
+  }
+  const delTeam=async id=>{await supabase.from('cf_teams').delete().eq('id',id);load()}
+
+  const exportRows=()=>{
+    const rows=players.map(p=>({Jugador:p.full_name||'—',Equipo:teams.find(t=>t.id===p.team_id)?.name||'—',Estado:redeemedIds.has(p.id)?'Usado este mes':'Disponible'}))
+    exportCSVLocal(rows,'cf_juventud_jugadores')
+  }
+
+  if(ld)return<Sp/>
+
+  return <div>
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14}}>
+      <h2 style={{fontSize:18,fontWeight:800,color:'var(--text)'}}>CF Juventud</h2>
+      <button onClick={exportRows} style={{fontSize:12,color:'var(--purple)',background:'var(--purple-bg)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>📥 Exportar CSV</button>
+    </div>
+
+    <p style={{fontSize:12,fontWeight:700,color:'var(--text3)',letterSpacing:0.5,textTransform:'uppercase',marginBottom:10}}>Jugadores ({players.length})</p>
+    <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:20}}>
+      {players.length===0&&<Em icon="⚽" text="Sin jugadores registrados todavía"/>}
+      {players.map(p=><div key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:12,boxShadow:'var(--shadow)'}}>
+        <div style={{flex:1,minWidth:0}}>
+          <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{p.full_name||'Sin nombre'}</div>
+          <div style={{fontSize:11,color:'var(--text3)'}}>{teams.find(t=>t.id===p.team_id)?.name||'—'}</div>
+        </div>
+        {redeemedIds.has(p.id)
+          ?<Bg color="var(--text3)" bg="rgba(156,163,175,0.15)">Usado</Bg>
+          :<Bg color="var(--green)" bg="var(--green-bg)">Disponible</Bg>}
+      </div>)}
+    </div>
+
+    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10}}>
+      <p style={{fontSize:12,fontWeight:700,color:'var(--text3)',letterSpacing:0.5,textTransform:'uppercase'}}>Equipos ({teams.length})</p>
+      <button onClick={()=>setEditTeam({name:'',active:true})} style={{fontSize:12,color:'var(--purple)',background:'var(--purple-bg)',border:'1px solid var(--border)',borderRadius:8,padding:'5px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>+ Añadir</button>
+    </div>
+    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+      {teams.map(t=><div key={t.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:10,opacity:t.active?1:0.5}}>
+        <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text)'}}>{t.name}</span>
+        <button onClick={()=>setEditTeam(t)} style={{fontSize:11,color:'var(--purple)',background:'var(--purple-bg)',border:'1px solid var(--border)',borderRadius:7,padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Editar</button>
+      </div>)}
+    </div>
+
+    {editTeam&&<CfTeamModal data={editTeam} onSave={saveTeam} onDelete={editTeam.id?()=>{delTeam(editTeam.id);setEditTeam(null)}:null} onClose={()=>setEditTeam(null)}/>}
+  </div>
+}
+
+function CfTeamModal({data,onSave,onDelete,onClose}) {
+  const [name,setName]=useState(data.name||''),[active,setActive]=useState(data.active!==false)
+  return <Modal>
+    <h3 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>{data.id?'Editar equipo':'Nuevo equipo'}</h3>
+    <In label="Nombre" required value={name} onChange={e=>setName(e.target.value)} placeholder="Ej: Alevín A"/>
+    <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
+      <span style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>Activo</span>
+      <button onClick={()=>setActive(!active)} style={{width:44,height:24,borderRadius:12,position:'relative',cursor:'pointer',border:'none',background:active?'var(--purple)':'var(--border)',transition:'all .3s'}}>
+        <div style={{width:20,height:20,borderRadius:10,background:'#fff',position:'absolute',top:2,left:active?22:2,transition:'all .3s',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
+      </button>
+    </div>
+    <div style={{display:'flex',gap:10,marginTop:8}}>
+      <Bt variant="secondary" onClick={onClose} style={{flex:1}}>Cancelar</Bt>
+      {onDelete&&<Bt variant="danger" onClick={onDelete}>Eliminar</Bt>}
+      <Bt onClick={()=>onSave({...data,name,active})} disabled={!name.trim()} style={{flex:1}}>Guardar</Bt>
+    </div>
+  </Modal>
 }
 
 // ═══ RESET PASSWORD ═══════════════════════════════════════════════════════════
