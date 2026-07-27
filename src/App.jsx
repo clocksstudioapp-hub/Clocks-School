@@ -448,6 +448,80 @@ function Auth({onLogin,onBack}) {
   </div>
 }
 
+// ═══ PLAYER ONBOARDING (/juventud) ═══
+// Sin código de acceso: el jugador se autodeclara y elige su equipo. El
+// barbero verifica en persona con el carnet físico del club antes de aplicar
+// el corte gratis (decisión de negocio documentada en la spec).
+function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
+  const isActivateMode = !!user && profile?.role==='client'
+  const [teamId,setTeamId]=useState(teams[0]?.id||'')
+  const [nm,setNm]=useState(''),[em,setEm]=useState(''),[pw,setPw]=useState(''),[ph,setPh]=useState('')
+  const [consent,setConsent]=useState(false)
+  const [ld,setLd]=useState(false),[er,setEr]=useState('')
+
+  const activate=async()=>{
+    if(!teamId){setEr('Selecciona tu equipo');return}
+    setLd(true);setEr('')
+    const{error}=await supabase.rpc('claim_player_role',{p_team_id:Number(teamId)})
+    setLd(false)
+    if(error){setEr(error.message||'Error al activar la tarjeta');return}
+    onDone()
+  }
+
+  const registerAndActivate=async()=>{
+    if(!nm.trim()||!em.trim()||!pw.trim()){setEr('Rellena los campos obligatorios');return}
+    if(pw.length<6){setEr('Mínimo 6 caracteres');return}
+    if(!consent){setEr('Debes aceptar la política de privacidad para crear una cuenta');return}
+    if(!teamId){setEr('Selecciona tu equipo');return}
+    setLd(true);setEr('')
+    try {
+      const {data,error:e}=await supabase.auth.signUp({email:em.trim(),password:pw,options:{data:{full_name:nm.trim(),phone:ph.trim()}}})
+      if(e)throw e
+      if(!data.user)throw new Error('No se pudo crear la cuenta')
+      await onLogin(data.user)
+      const{error:rpcErr}=await supabase.rpc('claim_player_role',{p_team_id:Number(teamId)})
+      if(rpcErr)throw rpcErr
+      onDone()
+    } catch(e){
+      if(e.message?.includes('already registered'))setEr('Email ya registrado')
+      else setEr(e.message||'Error')
+    }
+    setLd(false)
+  }
+
+  if(user&&(profile?.role==='player'||profile?.role==='admin'||profile?.role==='barber')){
+    onDone()
+    return <Sp/>
+  }
+
+  return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)'}}>
+    <div style={{padding:'32px 28px 26px',textAlign:'center'}}>
+      <img src="/images/logo-juventud.png" alt="C.F. Santo Domingo Juventud" style={{height:80,width:'auto',margin:'0 auto 16px',display:'block'}}/>
+      <h1 style={{fontSize:22,fontWeight:900,marginBottom:6,letterSpacing:-1,color:'var(--text)'}}>Tarjeta CF Juventud</h1>
+      <p style={{fontSize:14,color:'var(--text3)'}}>{isActivateMode?'Activa tu corte gratis mensual':'Regístrate para reservar tu corte gratis mensual'}</p>
+    </div>
+    <div className="anim" style={{padding:'0 28px 40px'}}>
+      {!isActivateMode&&!user&&<>
+        <In label="Nombre completo" required value={nm} onChange={e=>setNm(e.target.value)} placeholder="Tu nombre"/>
+        <In label="Teléfono" value={ph} onChange={e=>setPh(e.target.value)} placeholder="612 345 678"/>
+        <In label="Email" required type="email" value={em} onChange={e=>setEm(e.target.value)} placeholder="tu@email.com"/>
+        <In label="Contraseña" required type="password" value={pw} onChange={e=>setPw(e.target.value)} placeholder="Mínimo 6 caracteres"/>
+        <label style={{display:'flex',alignItems:'flex-start',gap:9,marginBottom:14,cursor:'pointer'}}>
+          <input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)} style={{marginTop:2,width:16,height:16,accentColor:'var(--purple)',flexShrink:0,cursor:'pointer'}}/>
+          <span style={{fontSize:12,color:'var(--text2)',lineHeight:1.5}}>He leído y acepto la política de privacidad y el tratamiento de mis datos para gestionar mis reservas.</span>
+        </label>
+      </>}
+      <Sl label="Tu equipo" value={teamId} onChange={e=>setTeamId(e.target.value)}>
+        {teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+      </Sl>
+      {er&&<div style={{padding:'11px 14px',background:'var(--red-bg)',borderRadius:10,marginBottom:14,border:'1px solid rgba(239,68,68,0.12)'}}><p style={{fontSize:13,color:'var(--red)',fontWeight:500}}>{er}</p></div>}
+      <Bt full onClick={isActivateMode?activate:registerAndActivate} disabled={ld} style={{background:'linear-gradient(135deg,#F26A21,#D9560F)',boxShadow:'0 4px 16px rgba(242,106,33,0.38)'}}>
+        {ld?'Procesando...':isActivateMode?'Activar mi tarjeta':'Crear cuenta y activar tarjeta'}
+      </Bt>
+    </div>
+  </div>
+}
+
 // ═══ BOOKING ══════════════════════════════════════════════════════════════════
 function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[],closures=[]}) {
   const [step,setStep]=useState(pre?1:0)
@@ -1506,34 +1580,49 @@ export default function App() {
   const [salonConfig,setSalonConfig]=useState(null)
   const [salonSchedule,setSalonSchedule]=useState([])
   const [salonClosures,setSalonClosures]=useState([])
+  const [cfTeams,setCfTeams]=useState([])
+  const [cfService,setCfService]=useState(null)
+  const [landingTab,setLandingTab]=useState(undefined) // pestaña inicial de Landing, solo para el flujo /juventud
 
   const loadPublic=async()=>{
-    const [{data:sv},{data:st},{data:sc},{data:ss},{data:cl}]=await Promise.all([
-      supabase.from('services').select('*').eq('active',true).order('display_order'),
+    const [{data:sv},{data:st},{data:sc},{data:ss},{data:cl},{data:tm},{data:cfsv}]=await Promise.all([
+      supabase.from('services').select('*').eq('active',true).eq('player_only',false).order('display_order'),
       supabase.from('stylists').select('*').eq('active',true).order('display_order'),
       supabase.from('salon_config').select('*').limit(1).maybeSingle(),
       supabase.from('salon_schedule').select('*').order('day_of_week'),
       supabase.from('salon_closures').select('start_date,end_date,reason'),
+      supabase.from('cf_teams').select('*').eq('active',true).order('display_order'),
+      supabase.from('services').select('*').eq('active',true).eq('player_only',true).maybeSingle(),
     ])
     setSvcs(sv||[]);setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[]);setSalonClosures(cl||[])
+    setCfTeams(tm||[]);setCfService(cfsv||null)
   }
 
   useEffect(()=>{
     loadPublic()
+    const isJuventudPath=window.location.pathname.startsWith('/juventud')
     let recoveryMode=false
     const {data:{subscription}}=supabase.auth.onAuthStateChange((event,s)=>{
       if(event==='PASSWORD_RECOVERY'){recoveryMode=true;setView('recovery');return}
       if(s?.user){setUser(s.user);lP(s.user.id)}else{setUser(null);setProfile(null)}
     })
-    supabase.auth.getSession().then(({data:{session}})=>{
+    supabase.auth.getSession().then(async({data:{session}})=>{
       if(recoveryMode)return
-      if(session?.user){setUser(session.user);lP(session.user.id);subscribePush(session.user.id)}
-      setView('landing')
+      if(session?.user){
+        setUser(session.user);subscribePush(session.user.id)
+        const prof=await lP(session.user.id)
+        if(isJuventudPath&&!['player','admin','barber'].includes(prof?.role)){setView('player-onboarding');return}
+        // La pestaña CF Juventud solo existe para player/admin (ver Landing); un
+        // barber que llegue por /juventud va a landing normal, sin forzar la pestaña.
+        if(isJuventudPath&&['player','admin'].includes(prof?.role)){setLandingTab('juventud')}
+        setView('landing');return
+      }
+      setView(isJuventudPath?'player-onboarding':'landing')
     })
     return()=>subscription.unsubscribe()
   },[])
 
-  const lP=async id=>{const{data}=await supabase.from('profiles').select('*').eq('id',id).single();setProfile(data)}
+  const lP=async id=>{const{data}=await supabase.from('profiles').select('*').eq('id',id).single();setProfile(data);return data}
   const hL=u=>{setUser(u);lP(u.id);subscribePush(u.id);if(ps)setView('booking');else setView('landing')}
   const hO=async()=>{await supabase.auth.signOut();setUser(null);setProfile(null);setView('landing')}
   const hR=s=>{setPs(s);if(user)setView('booking');else setView('auth')}
@@ -1550,12 +1639,13 @@ export default function App() {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(83,85,159,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
-    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures}/>}
+    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} profile={profile} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures} cfTeams={cfTeams} cfService={cfService} initialTab={landingTab}/>}
     {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')}/>}
     {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule} closures={salonClosures}/>}
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
     {view==='admin'&&user&&isA&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
     {view==='barber'&&user&&isBarber&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig} barberStylistId={profile?.stylist_id}/>}
+    {view==='player-onboarding'&&<PlayerOnboarding user={user} profile={profile} teams={cfTeams} onDone={()=>{setLandingTab('juventud');setView('landing')}} onLogin={async u=>{setUser(u);await lP(u.id)}}/>}
   </div>
 }
