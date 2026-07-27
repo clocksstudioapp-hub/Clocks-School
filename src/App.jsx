@@ -293,15 +293,23 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
     </div>}
 
     {tab==='detalles'&&<div style={{padding:16}}>
-      {[
-        {i:'📍',l:'Dirección',t:addr},
-        {i:'🕐',l:'Horario',t:'Lunes — Viernes: 10:00 – 14:00 y 16:00 – 20:00\nSábado y Domingo: Cerrado'},
-        {i:'📞',l:'Teléfono',t:phone},
-        {i:'📸',l:'Instagram',t:insta}
-      ].map((d,idx)=><div key={idx} style={{display:'flex',gap:14,alignItems:'flex-start',padding:'14px 0',borderBottom:idx<3?'1px solid var(--border)':'none'}}>
-        <div style={{width:40,height:40,borderRadius:12,background:'var(--purple-bg)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:18}}>{d.i}</div>
-        <div><div style={{fontSize:12,color:'var(--text3)',fontWeight:500,marginBottom:3}}>{d.l}</div><div style={{fontSize:14,fontWeight:500,lineHeight:1.55,whiteSpace:'pre-line',color:'var(--text)'}}>{d.t}</div></div>
-      </div>)}
+      {(()=>{
+        const horarioTxt=salonSchedule.length>0?['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((d,i)=>{const s=salonSchedule.find(x=>x.day_of_week===i);return s?.active?`${d}: ${s.open_time?.slice(0,5)} – ${s.close_time?.slice(0,5)}`:null}).filter(Boolean).join('\n')||'Ver horarios en el local':'Ver horarios en el local'
+        const items=[
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>,l:'Dirección',t:addr,href:`https://maps.google.com/?q=${encodeURIComponent(addr)}`,cta:'Ver en mapa'},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,l:'Horario',t:horarioTxt,href:null,cta:null},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,l:'Teléfono',t:phone,href:`tel:${phone.replace(/\s/g,'')}`,cta:'Llamar'},
+          {icon:<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.5" cy="6.5" r="1.1" fill="#fff" stroke="none"/></svg>,grad:'radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%)',l:'Instagram',t:insta,href:`https://instagram.com/${insta.replace('@','')}`,cta:'Abrir Instagram'}
+        ]
+        return<div style={{display:'flex',flexDirection:'column',gap:10}}>{items.map((d,idx)=><div key={idx} className={`anim d${idx+1}`} style={{display:'flex',gap:14,alignItems:'flex-start',padding:'16px 18px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:16,boxShadow:'var(--shadow)'}}>
+          <div style={{width:42,height:42,borderRadius:13,background:d.grad||'linear-gradient(135deg,var(--purple-bg2),var(--purple-bg))',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:d.grad?'none':'1px solid var(--border)',boxShadow:d.grad?'0 3px 10px rgba(214,36,159,0.30)':'none'}}>{d.icon}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:11,color:'var(--text3)',fontWeight:700,marginBottom:4,letterSpacing:'0.06em',textTransform:'uppercase'}}>{d.l}</div>
+            <div style={{fontSize:14,fontWeight:600,lineHeight:1.55,whiteSpace:'pre-line',color:'var(--text)'}}>{d.t}</div>
+            {d.href&&d.cta&&<a href={d.href} target={d.href.startsWith('http')?'_blank':undefined} rel="noopener noreferrer" style={{display:'inline-block',marginTop:8,fontSize:12,fontWeight:700,color:'var(--purple)',textDecoration:'none',padding:'5px 11px',background:'var(--purple-bg)',borderRadius:8}}>{d.cta} →</a>}
+          </div>
+        </div>)}</div>
+      })()}
     </div>}
 
     <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 18px',zIndex:50}}>
