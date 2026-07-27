@@ -44,7 +44,6 @@ const fDF = d => `${dayF[d.getDay()]}, ${fD(d)}`
 const fS = d => `${d.getDate()} ${MS[d.getMonth()]}`
 const parseDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d) }
 const gMD = (y,m) => { const f=new Date(y,m,1),l=new Date(y,m+1,0); let s=f.getDay()-1; if(s<0)s=6; const d=[]; for(let i=0;i<s;i++)d.push(null); for(let i=1;i<=l.getDate();i++)d.push(new Date(y,m,i)); return d }
-const svcIcon = n => { const s=(n||'').toLowerCase(); if(s.includes('barba'))return'🪒'; if(s.includes('ceja'))return'✦'; if(s.includes('color')||s.includes('mecha'))return'🎨'; return'✂️' }
 
 // Álvaro tiene slots de 30 min para cortes y barba
 const alvaroEffDur = (sty, svc) => {
@@ -58,6 +57,47 @@ const alvaroEffDur = (sty, svc) => {
 
 const HERO = ['images/hero-1.jpg','images/hero-2.jpg','images/hero-3.jpg','images/hero-4.jpg']
 const GALL = ['images/work-1.jpg','images/work-2.jpg','images/work-3.jpg','images/work-4.jpg','images/work-5.jpg','images/work-6.jpg']
+
+// Service category detector — used by <ServiceIcon/>
+const serviceKind = n => {
+  const s = (n||'').toLowerCase()
+  if(s.includes('barba')&&!s.includes('cejas'))return'beard'
+  if(s.includes('ceja'))return'eyebrow'
+  if(s.includes('color')||s.includes('tinte'))return'color'
+  if(s.includes('mecha')||s.includes('decolor'))return'highlights'
+  if(s.includes('lavad')||(s.includes('champ')&&s.includes('serv')))return'wash'
+  if(s.includes('tratam')||s.includes('mascarill')||s.includes('hidrat')||s.includes('keratin'))return'treatment'
+  if(s.includes('afeit')||s.includes('shave'))return'shave'
+  if(s.includes('niñ')||s.includes('kids')||s.includes('infantil'))return'kids'
+  if(s.includes('pack')||s.includes('combo'))return'pack'
+  if(s.includes('diseñ')||s.includes('design'))return'design'
+  if(s.includes('peinad')||s.includes('styling')||s.includes('moldead'))return'styling'
+  if(s.includes('masaj')||s.includes('relax'))return'massage'
+  return 'haircut'
+}
+// SVG glyphs — viewBox 32x32, currentColor stroke, line-art style
+const SERVICE_SVG = {
+  haircut:    <><path d="M12 6l8 8M20 6l-8 8M9 22a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM23 22a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM11 19l8-8M21 19l-8-8" strokeWidth="1.8"/></>,
+  beard:      <><path d="M12 6c0 4 2 6 4 6s4-2 4-6"/><path d="M16 12v3"/><circle cx="12" cy="9" r="0.7" fill="currentColor" stroke="none"/><circle cx="20" cy="9" r="0.7" fill="currentColor" stroke="none"/><path d="M9 16c0 7 3 12 7 12s7-5 7-12c-1 0-3 1-7 1s-6-1-7-1z"/><path d="M11 19c1 0 1-1 2-1M21 19c-1 0-1-1-2-1" strokeWidth="1.4"/></>,
+  eyebrow:    <><path d="M5 15c4-4 12-4 22 0"/><path d="M7 19c3-3 11-3 18 0" strokeOpacity="0.45"/><circle cx="16" cy="22" r="1.2" fill="currentColor" stroke="none"/></>,
+  color:      <><path d="M16 5c-3 5-7 8-7 12a7 7 0 1 0 14 0c0-4-4-7-7-12z"/><path d="M11 16c1 3 3 5 5 5" strokeOpacity="0.5"/><circle cx="22" cy="9" r="1.5" fill="currentColor" stroke="none"/><circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/></>,
+  highlights: <><path d="M10 5v8M14 5v10M18 5v9M22 5v11"/><path d="M8 14h16l-2 12H10z"/><path d="M11 18l1 6M17 18l1 6M22 18l-1 6" strokeOpacity="0.55"/></>,
+  wash:       <><path d="M16 5c-1 0-3 2-3 4v2"/><rect x="11" y="11" width="10" height="16" rx="2.5"/><path d="M11 16h10" strokeOpacity="0.5"/><circle cx="14" cy="20" r="0.8" fill="currentColor" stroke="none"/><circle cx="18" cy="22" r="0.6" fill="currentColor" stroke="none"/></>,
+  treatment:  <><path d="M16 4c-2 4-5 7-5 11a5 5 0 0 0 10 0c0-4-3-7-5-11z"/><path d="M22 7l1.5 1.5M22 7l-1.5 1.5M22 7l-1 -1.5M22 7l1.5 -.5" strokeWidth="1.4"/><path d="M9 18l1 1M9 18l1 -.5M9 18l-1 .5M9 18l-1 -1" strokeWidth="1.4"/></>,
+  shave:      <><path d="M9 6h14v3a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V6z"/><path d="M14 11h4v4h-4z"/><rect x="13" y="15" width="6" height="13" rx="1.5"/><path d="M11 7.5h2M19 7.5h2" strokeWidth="2.2"/></>,
+  kids:       <><path d="M11 6l5 5M21 6l-5 5M9 17a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM23 17a3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3z"/><circle cx="20" cy="22" r="5"/><path d="M18 22c1 1.5 3 1.5 4 0" strokeWidth="1.4"/><circle cx="18.5" cy="20.5" r="0.5" fill="currentColor" stroke="none"/><circle cx="21.5" cy="20.5" r="0.5" fill="currentColor" stroke="none"/></>,
+  pack:       <><rect x="6" y="11" width="20" height="16" rx="2"/><rect x="9" y="8" width="14" height="3" rx="1" strokeOpacity="0.7"/><rect x="11" y="5" width="10" height="3" rx="1" strokeOpacity="0.4"/><path d="M14 17l4 4M18 17l-4 4" strokeWidth="1.6" strokeOpacity="0.6"/></>,
+  design:     <><path d="M18 4l-9 14h6l-2 10 9-14h-6z"/></>,
+  styling:    <><path d="M5 11h22a1 1 0 0 1 1 1v3H4v-3a1 1 0 0 1 1-1z"/><path d="M6 15v4M9 15v6M12 15v4M15 15v6M18 15v4M21 15v6M24 15v4M27 15v6" strokeWidth="1.6"/><path d="M4 24c4-2 8 2 12 0s8 2 12 0" strokeOpacity="0.6"/></>,
+  massage:    <><circle cx="11" cy="11" r="3"/><circle cx="21" cy="11" r="3"/><circle cx="16" cy="20" r="3"/><circle cx="9" cy="22" r="2" strokeOpacity="0.5"/><circle cx="23" cy="22" r="2" strokeOpacity="0.5"/></>,
+}
+function ServiceIcon({ name, sel = false, size = 22 }) {
+  const kind = serviceKind(name)
+  const color = sel ? '#fff' : 'var(--purple)'
+  return <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{color,display:'block',filter:sel?'drop-shadow(0 1px 2px rgba(0,0,0,0.18))':'none'}}>
+    {SERVICE_SVG[kind] || SERVICE_SVG.haircut}
+  </svg>
+}
 
 // ═══ ATOMS ════════════════════════════════════════════════════════════════════
 const Sp = () => <div style={{display:'flex',justifyContent:'center',padding:40}}>
@@ -119,27 +159,37 @@ const ClockSVG = ({size=28,color='#fff'}) => <svg width={size} height={size} vie
 // ═══ SERVICE CARD ═════════════════════════════════════════════════════════════
 function SvcCard({s,sel,onClick,i,bookBtn}) {
   return <div onClick={onClick} className={`anim d${(i%5)+1}`} style={{
-    display:'flex',alignItems:'center',gap:14,padding:'16px 18px',borderRadius:18,cursor:'pointer',
+    position:'relative',padding:'18px 20px',borderRadius:18,cursor:'pointer',
     background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',
     border:sel?'none':'1.5px solid var(--border)',
     boxShadow:sel?'0 12px 28px rgba(105,107,198,0.28)':'var(--shadow)',
-    marginBottom:10,transition:'all .2s'
-  }}>
-    <div style={{width:44,height:44,borderRadius:14,flexShrink:0,background:sel?'rgba(255,255,255,0.18)':'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>
-      {svcIcon(s.name)}
-    </div>
-    <div style={{flex:1,minWidth:0}}>
-      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-        <span style={{fontSize:14,fontWeight:700,color:sel?'#fff':'var(--text)'}}>{s.name}</span>
-        {s.category==='popular'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:6,background:sel?'rgba(255,255,255,0.22)':'var(--purple-bg)',color:sel?'#fff':'var(--purple)'}}>TOP</span>}
+    marginBottom:12,transition:'transform .15s, box-shadow .2s'
+  }}
+  onMouseDown={e=>e.currentTarget.style.transform='scale(0.985)'}
+  onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
+  onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+  onTouchStart={e=>e.currentTarget.style.transform='scale(0.985)'}
+  onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
+    {/* Accent bar a la izquierda (vertical) para identidad de marca */}
+    {!sel && <div style={{position:'absolute',left:0,top:14,bottom:14,width:3,borderRadius:'0 3px 3px 0',background:s.category==='popular'?'linear-gradient(180deg,var(--purple),var(--purple-l))':'var(--border2)'}}/>}
+    <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}}>
+          <span style={{fontSize:15,fontWeight:700,color:sel?'#fff':'var(--text)',letterSpacing:-0.1}}>{s.name}</span>
+          {s.category==='popular'&&<span style={{fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:6,background:sel?'rgba(255,255,255,0.22)':'var(--purple-bg)',color:sel?'#fff':'var(--purple)',letterSpacing:'0.08em'}}>TOP</span>}
+        </div>
+        <div style={{fontSize:12,color:sel?'rgba(255,255,255,0.78)':'var(--text3)',lineHeight:1.4,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+          <span style={{display:'inline-flex',alignItems:'center',gap:4,fontWeight:600,color:sel?'rgba(255,255,255,0.92)':'var(--text2)'}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            {s.duration} min
+          </span>
+          {s.description && <><span style={{opacity:0.5}}>·</span><span>{s.description}</span></>}
+        </div>
       </div>
-      <div style={{fontSize:12,color:sel?'rgba(255,255,255,0.65)':'var(--text3)',marginTop:3}}>
-        {s.duration} min{s.description?` · ${s.description}`:''}
+      <div style={{flexShrink:0,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:64}}>
+        <div style={{fontSize:22,fontWeight:900,color:sel?'#fff':'var(--purple)',letterSpacing:-1,lineHeight:1}}>{Number(s.price).toFixed(0)}€</div>
+        {bookBtn&&!sel&&<button onClick={e=>{e.stopPropagation();onClick()}} style={{fontSize:11,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:9,padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',fontWeight:700,boxShadow:'0 3px 10px rgba(105,107,198,0.32)',letterSpacing:0.2,minHeight:28}}>Reservar</button>}
       </div>
-    </div>
-    <div style={{flexShrink:0,textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
-      <div style={{fontSize:20,fontWeight:900,color:sel?'#fff':'var(--purple)'}}>{Number(s.price).toFixed(0)}€</div>
-      {bookBtn&&!sel&&<button onClick={e=>{e.stopPropagation();onClick()}} style={{fontSize:11,color:'var(--purple)',background:'var(--purple-bg)',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:700}}>Reservar</button>}
     </div>
   </div>
 }
@@ -1315,7 +1365,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {sv.map((s,i)=><div key={s.id} className={`anim d${(i%5)+1}`} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:14,boxShadow:'var(--shadow)',opacity:s.active?1:0.5}}>
-            <div style={{width:36,height:36,borderRadius:10,background:'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>{svcIcon(s.name)}</div>
+            <div style={{width:36,height:36,borderRadius:10,background:'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><ServiceIcon name={s.name} size={18}/></div>
             <div style={{flex:1}}>
               <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{s.name}</div>
               <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{s.duration} min · {s.category==='popular'?'⭐ Popular':'Otro'}</div>
