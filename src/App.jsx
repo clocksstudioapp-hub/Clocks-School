@@ -55,9 +55,10 @@ const alvaroEffDur = (sty, svc) => {
   return (isAlvaro&&isQuickSvc) ? 30 : svc.duration
 }
 
-// Punto unico de referencia al logo. Cuando lleguen los logos propios de
-// School, se cambia aqui o se sobrescribe el fichero.
-const LOGO_H = '/images/logohorizontalmorado-trim.webp'
+// Punto unico de referencia a los logos oficiales de Clocks School.
+// Ambos llevan fondo blanco solido (sin alfa): solo sobre fondos blancos.
+const LOGO_H = '/images/logo-school-h.png'        // logotipo horizontal
+const LOGO_MARK = '/images/logo-school-mark.png'  // isotipo (ovalo BCS)
 
 const HERO = ['images/hero-1.jpg','images/hero-2.jpg','images/hero-3.jpg','images/hero-4.jpg']
 const GALL = ['images/work-1.jpg','images/work-2.jpg','images/work-3.jpg','images/work-4.jpg','images/work-5.jpg','images/work-6.jpg']
@@ -244,7 +245,7 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
 
     <div style={{height:95,background:'var(--white)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'0 16px',borderBottom:'1px solid var(--border)'}}>
       {logoOk
-        ?<img src={LOGO_H} alt="Clocks School" style={{height:66,width:'auto',display:'block',flexShrink:0}} onError={()=>setLogoOk(false)}/>
+        ?<img src={LOGO_H} alt="Clocks Barber School" style={{height:64,width:'auto',display:'block',flexShrink:0}} onError={()=>setLogoOk(false)}/>
         :<span style={{fontSize:30,fontWeight:900,color:'var(--purple)',letterSpacing:-1.6,flexShrink:0}}>CLOCKS</span>}
       <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontFamily:'inherit',lineHeight:1.2,flexShrink:0}}>
         <span aria-label={isOpen?'Estado: abierto ahora':'Estado: cerrado'} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px 5px 9px',borderRadius:18,background:isOpen?'var(--green-bg)':'var(--bg)',border:`1px solid ${isOpen?'rgba(22,163,74,0.22)':'var(--border2)'}`}}>
@@ -359,6 +360,7 @@ function ResetPasswordForm({onDone}) {
 // ═══ AUTH ═════════════════════════════════════════════════════════════════════
 function Auth({onLogin,onBack}) {
   const [m,setM]=useState('login'),[em,setEm]=useState(''),[pw,setPw]=useState(''),[nm,setNm]=useState(''),[ph,setPh]=useState(''),[ld,setLd]=useState(false),[er,setEr]=useState('')
+  const [logoOk,setLogoOk]=useState(true)
   const [resetSent,setResetSent]=useState(false)
   const [consent,setConsent]=useState(false),[showPrivacy,setShowPrivacy]=useState(false)
   const sendReset=async()=>{
@@ -392,12 +394,16 @@ function Auth({onLogin,onBack}) {
   }
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)'}}>
     <div style={{padding:'12px 20px 0'}}><BB onClick={onBack} label="Volver"/></div>
-    <div style={{padding:'36px 28px 24px',textAlign:'center'}}>
-      <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(105,107,198,0.38)'}}>
-        <ClockSVG size={32}/>
-      </div>
-      <h1 style={{fontSize:24,fontWeight:900,marginBottom:4,letterSpacing:-1,color:'var(--text)'}}>Clocks School</h1>
-      <p style={{fontSize:14,color:'var(--text3)'}}>Accede para reservar tu cita</p>
+    <div style={{padding:'32px 28px 26px',display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+      {logoOk
+        ?<>
+          <img src={LOGO_MARK} alt="" style={{height:80,width:'auto',maxWidth:'55%',display:'block'}} onError={()=>setLogoOk(false)}/>
+          <img src={LOGO_H} alt="Clocks Barber School" style={{width:200,maxWidth:'72%',height:'auto',display:'block'}} onError={()=>setLogoOk(false)}/>
+        </>
+        :<>
+          <h1 style={{fontSize:24,fontWeight:900,marginBottom:4,letterSpacing:-1,color:'var(--text)'}}>Clocks School</h1>
+          <p style={{fontSize:14,color:'var(--text3)'}}>Accede para reservar tu cita</p>
+        </>}
     </div>
     <div style={{display:'flex',margin:'0 28px',background:'var(--purple-bg)',borderRadius:12,padding:3,marginBottom:24}}>
       {[['login','Iniciar sesión'],['register','Crear cuenta']].map(([id,l])=>
