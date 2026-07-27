@@ -247,7 +247,7 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
       {logoOk
         ?<img src={LOGO_H} alt="Clocks Barber School" style={{height:64,width:'auto',display:'block',flexShrink:0}} onError={()=>setLogoOk(false)}/>
         :<span style={{fontSize:30,fontWeight:900,color:'var(--purple)',letterSpacing:-1.6,flexShrink:0}}>CLOCKS</span>}
-      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontFamily:'inherit',lineHeight:1.2,flexShrink:0}}>
+      <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6,fontFamily:'inherit',lineHeight:1.2,flexShrink:0}}>
         <span aria-label={isOpen?'Estado: abierto ahora':'Estado: cerrado'} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px 5px 9px',borderRadius:18,background:isOpen?'var(--green-bg)':'var(--bg)',border:`1px solid ${isOpen?'rgba(22,163,74,0.22)':'var(--border2)'}`}}>
           <span style={{width:7,height:7,borderRadius:'50%',background:isOpen?'var(--green)':'var(--text3)',boxShadow:isOpen?'0 0 8px var(--green)':'none',animation:isOpen?'glow 2.2s ease-in-out infinite':'none',flexShrink:0}}/>
           <span style={{fontSize:10.5,fontWeight:800,color:isOpen?'var(--green)':'var(--text3)',letterSpacing:'0.05em',textTransform:'uppercase'}}>{isOpen?'Abierto':'Cerrado'}</span>
