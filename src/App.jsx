@@ -80,7 +80,7 @@ function Bt({children,onClick,disabled,full,variant='primary',small,style:sx,...
     border:p?'none':d?'1px solid rgba(239,68,68,0.15)':'1px solid var(--border)',
     borderRadius:small?10:14,cursor:disabled?'default':'pointer',transition:'all .2s',
     display:'inline-flex',alignItems:'center',justifyContent:'center',gap:8,
-    boxShadow:p&&!disabled?'0 4px 16px rgba(124,58,237,0.38)':'none',
+    boxShadow:p&&!disabled?'0 4px 16px rgba(105,107,198,0.38)':'none',
     ...sx
   }} {...rest}>{children}</button>
 }
@@ -122,7 +122,7 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
     display:'flex',alignItems:'center',gap:14,padding:'16px 18px',borderRadius:18,cursor:'pointer',
     background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',
     border:sel?'none':'1.5px solid var(--border)',
-    boxShadow:sel?'0 12px 28px rgba(124,58,237,0.28)':'var(--shadow)',
+    boxShadow:sel?'0 12px 28px rgba(105,107,198,0.28)':'var(--shadow)',
     marginBottom:10,transition:'all .2s'
   }}>
     <div style={{width:44,height:44,borderRadius:14,flexShrink:0,background:sel?'rgba(255,255,255,0.18)':'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>
@@ -169,11 +169,11 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
   const insta=salonConfig?.instagram||'@clocks.school'
 
   return <div style={{paddingBottom:88}}>
-    <div style={{position:'relative',height:260,overflow:'hidden',background:'#DDD6FE'}}>
+    <div style={{position:'relative',height:260,overflow:'hidden',background:'#D3D3EE'}}>
       {HERO.map((src,i)=><div key={i} style={{position:'absolute',inset:0,opacity:hi===i?1:0,transition:'opacity .85s'}}>
         <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.style.background=`hsl(${260+i*15},25%,${65+i*4}%)`}}/>
       </div>)}
-      <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(109,40,217,0.08) 0%,rgba(109,40,217,0.55) 100%)'}}/>
+      <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(83,85,159,0.08) 0%,rgba(83,85,159,0.55) 100%)'}}/>
       <div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',display:'flex',gap:6,zIndex:3}}>
         {HERO.map((_,i)=><button key={i} onClick={()=>setHi(i)} style={{width:hi===i?20:6,height:6,borderRadius:3,border:'none',cursor:'pointer',background:'#fff',opacity:hi===i?1:0.5,transition:'all .3s'}}/>)}
       </div>
@@ -198,7 +198,7 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
           <p style={{fontSize:11,fontWeight:700,color:'var(--purple)',letterSpacing:2.5,textTransform:'uppercase',marginBottom:4}}>School · Barbería</p>
           <p style={{fontSize:12,color:'var(--text3)'}}>Zaragoza</p>
         </div>
-        <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 6px 20px rgba(124,58,237,0.38)',flexShrink:0}}>
+        <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 6px 20px rgba(105,107,198,0.38)',flexShrink:0}}>
           <ClockSVG size={30}/>
         </div>
       </div>
@@ -251,7 +251,7 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
     </div>}
 
     <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 18px',zIndex:50}}>
-      <button onClick={()=>onRes(null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 6px 20px rgba(124,58,237,0.42)'}}>
+      <button onClick={()=>onRes(null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 6px 20px rgba(105,107,198,0.42)'}}>
         Reservar cita
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
       </button>
@@ -274,7 +274,7 @@ function ResetPasswordForm({onDone}) {
   return<div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 28px'}}>
     <div className="scale-in" style={{width:'100%'}}>
       <div style={{textAlign:'center',marginBottom:32}}>
-        <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(124,58,237,0.38)'}}>
+        <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(105,107,198,0.38)'}}>
           <ClockSVG size={32}/>
         </div>
         <h1 style={{fontSize:24,fontWeight:900,marginBottom:6,letterSpacing:-1,color:'var(--text)'}}>{ok?'¡Listo!':'Nueva contraseña'}</h1>
@@ -331,7 +331,7 @@ function Auth({onLogin,onBack}) {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)'}}>
     <div style={{padding:'12px 20px 0'}}><BB onClick={onBack} label="Volver"/></div>
     <div style={{padding:'36px 28px 24px',textAlign:'center'}}>
-      <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(124,58,237,0.38)'}}>
+      <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(105,107,198,0.38)'}}>
         <ClockSVG size={32}/>
       </div>
       <h1 style={{fontSize:24,fontWeight:900,marginBottom:4,letterSpacing:-1,color:'var(--text)'}}>Clocks School</h1>
@@ -490,7 +490,7 @@ setSlots(unionSlots)
       <h2 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Elige profesional</h2>
       <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:6}}>
         {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
-          <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(124,58,237,0.32)':'none'}}>
+          <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(105,107,198,0.32)':'none'}}>
             {s.photo_url?<img src={s.photo_url} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:s.name[0]}
           </div>
           <span style={{fontSize:12,fontWeight:sl?700:500,color:sl?'var(--purple)':'var(--text2)',textAlign:'center'}}>{s.name}</span>
@@ -538,7 +538,7 @@ setSlots(unionSlots)
         <p style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:12}}>{fDF(date)}</p>
         {sL?<Sp/>:slots.length===0?<Em icon="😔" text="Sin horarios disponibles este día"/>:
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
-            {slots.map(s=><button key={s} onClick={()=>setTime(s)} style={{padding:'10px 6px',borderRadius:12,border:time===s?'none':'1.5px solid var(--border)',background:time===s?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',color:time===s?'#fff':'var(--text)',fontSize:13,fontWeight:time===s?700:500,cursor:'pointer',fontFamily:'inherit',boxShadow:time===s?'0 4px 12px rgba(124,58,237,0.30)':'none',transition:'all .15s'}}>{s}</button>)}
+            {slots.map(s=><button key={s} onClick={()=>setTime(s)} style={{padding:'10px 6px',borderRadius:12,border:time===s?'none':'1.5px solid var(--border)',background:time===s?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',color:time===s?'#fff':'var(--text)',fontSize:13,fontWeight:time===s?700:500,cursor:'pointer',fontFamily:'inherit',boxShadow:time===s?'0 4px 12px rgba(105,107,198,0.30)':'none',transition:'all .15s'}}>{s}</button>)}
           </div>}
       </div>}
 
@@ -587,7 +587,7 @@ function Account({user,profile,stys,onBook,onLogout,onBack,onUp}) {
     <div style={{padding:'8px 20px 0'}}><BB onClick={onBack} label="Volver"/></div>
     <div style={{padding:'8px 20px 20px',background:'var(--white)',borderBottom:'1px solid var(--border)'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16}}>
-        <div style={{width:52,height:52,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:800,color:'#fff',boxShadow:'0 4px 14px rgba(124,58,237,0.32)'}}>{ini}</div>
+        <div style={{width:52,height:52,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:800,color:'#fff',boxShadow:'0 4px 14px rgba(105,107,198,0.32)'}}>{ini}</div>
         <div style={{flex:1}}>
           <div style={{fontSize:17,fontWeight:700,color:'var(--text)'}}>{profile?.full_name}</div>
           <div style={{fontSize:13,color:'var(--text3)'}}>{user.email}</div>
@@ -860,7 +860,7 @@ function StyModal({data,onSave,onClose}) {
     {photo&&<div style={{marginBottom:14,borderRadius:12,overflow:'hidden',height:80,width:80,background:'var(--bg)',border:'1px solid var(--border)'}}><img src={photo} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/></div>}
     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
       <span style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>Activo</span>
-      <button onClick={()=>setActive(!active)} style={{width:44,height:24,borderRadius:12,position:'relative',cursor:'pointer',border:'none',background:active?'var(--purple)':'var(--border)',transition:'all .3s',boxShadow:active?'0 2px 8px rgba(124,58,237,0.35)':'none'}}>
+      <button onClick={()=>setActive(!active)} style={{width:44,height:24,borderRadius:12,position:'relative',cursor:'pointer',border:'none',background:active?'var(--purple)':'var(--border)',transition:'all .3s',boxShadow:active?'0 2px 8px rgba(105,107,198,0.35)':'none'}}>
         <div style={{width:20,height:20,borderRadius:10,background:'#fff',position:'absolute',top:2,left:active?22:2,transition:'all .3s',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
       </button>
     </div>
@@ -915,7 +915,7 @@ function ShareTab() {
             ? <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>¡Copiado!</>
             : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</>}
         </button>
-        <button onClick={share} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 16px rgba(124,58,237,0.38)'}}>
+        <button onClick={share} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 16px rgba(105,107,198,0.38)'}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           Compartir enlace
         </button>
@@ -1123,7 +1123,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
     <div style={{padding:'14px 16px',background:'var(--white)',borderBottom:'1px solid var(--border)'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 3px 10px rgba(124,58,237,0.35)'}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 3px 10px rgba(105,107,198,0.35)'}}>
             <ClockSVG size={20}/>
           </div>
           <div>
@@ -1135,7 +1135,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
       </div>
 
       {/* Selector barbero propio — solo para admin completo */}
-      {!isBarberMode&&<button onClick={()=>setShowStylistPicker(true)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:myStylist?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:myStylist?'none':'1.5px dashed var(--border2)',borderRadius:12,cursor:'pointer',transition:'all .2s',boxShadow:myStylist?'0 4px 14px rgba(124,58,237,0.28)':'none'}}>
+      {!isBarberMode&&<button onClick={()=>setShowStylistPicker(true)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:myStylist?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:myStylist?'none':'1.5px dashed var(--border2)',borderRadius:12,cursor:'pointer',transition:'all .2s',boxShadow:myStylist?'0 4px 14px rgba(105,107,198,0.28)':'none'}}>
         {myStylist?<>
           <div style={{width:30,height:30,borderRadius:15,background:'rgba(255,255,255,0.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',overflow:'hidden',flexShrink:0}}>
             {myStylist.photo_url?<img src={myStylist.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:myStylist.name[0]}
@@ -1160,7 +1160,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
         {st.filter(s=>s.active).map(s=>{
           const sel=myStylistId===s.id
-          return<button key={s.id} onClick={()=>selectMyStylist(s.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:sel?'none':'1.5px solid var(--border)',cursor:'pointer',transition:'all .2s',boxShadow:sel?'0 4px 14px rgba(124,58,237,0.28)':'none'}}>
+          return<button key={s.id} onClick={()=>selectMyStylist(s.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:sel?'none':'1.5px solid var(--border)',cursor:'pointer',transition:'all .2s',boxShadow:sel?'0 4px 14px rgba(105,107,198,0.28)':'none'}}>
             <div style={{width:38,height:38,borderRadius:19,background:sel?'rgba(255,255,255,0.22)':'var(--purple-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color:sel?'#fff':'var(--purple)',overflow:'hidden',flexShrink:0}}>
               {s.photo_url?<img src={s.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:s.name[0]}
             </div>
@@ -1206,7 +1206,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
             {days.map((d,i)=>{
               if(!d)return<div key={'e'+i}/>
               const sl=toK(sd)===toK(d)
-              return<button key={toK(d)} onClick={()=>setSd(d)} style={{height:30,borderRadius:15,background:sl?'linear-gradient(135deg,var(--purple),var(--purple-l))':'transparent',border:'none',cursor:'pointer',fontSize:11,fontWeight:sl||isT(d)?700:400,color:sl?'#fff':isT(d)?'var(--purple)':'var(--text)',boxShadow:sl?'0 2px 8px rgba(124,58,237,0.3)':'none'}}>{d.getDate()}</button>
+              return<button key={toK(d)} onClick={()=>setSd(d)} style={{height:30,borderRadius:15,background:sl?'linear-gradient(135deg,var(--purple),var(--purple-l))':'transparent',border:'none',cursor:'pointer',fontSize:11,fontWeight:sl||isT(d)?700:400,color:sl?'#fff':isT(d)?'var(--purple)':'var(--text)',boxShadow:sl?'0 2px 8px rgba(105,107,198,0.3)':'none'}}>{d.getDate()}</button>
             })}
           </div>
         </div>
@@ -1479,7 +1479,7 @@ export default function App() {
 
   if(view==='loading')return<div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{CSS}</style><Sp/></div>
 
-  return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(109,40,217,0.06)'}}>
+  return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(83,85,159,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
     {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures}/>}
