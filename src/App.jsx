@@ -6,19 +6,19 @@ import { getSlotsForDay } from './availability.js'
 // ═══ CSS ══════════════════════════════════════════════════════════════════════
 const CSS = `
 :root{
-  --bg:#F8F5FF;--white:#FFFFFF;--border:#EDE9FE;--border2:#DDD6FE;
-  --text:#1C1C1E;--text2:#4B5563;--text3:#9CA3AF;
-  --purple:#7C3AED;--purple-l:#A78BFA;--purple-d:#6D28D9;
-  --purple-bg:#EDE9FE;--purple-bg2:#F3F0FF;
+  --bg:#F7F7FD;--white:#FFFFFF;--border:#E7E7F6;--border2:#D3D3EE;
+  --text:#2D2D2F;--text2:#4B5563;--text3:#9CA3AF;
+  --purple:#696BC6;--purple-l:#9294D6;--purple-d:#53559F;
+  --purple-bg:#E7E7F6;--purple-bg2:#F2F2FB;
   --green:#22C55E;--green-bg:rgba(34,197,94,0.10);
-  --yellow:#F59E0B;--orange:#F97316;--orange-bg:rgba(249,115,22,0.09);
+  --yellow:#F59E0B;--yellow-bg:rgba(245,158,11,0.10);--orange:#F97316;--orange-bg:rgba(249,115,22,0.09);
   --red:#EF4444;--red-bg:rgba(239,68,68,0.08);
-  --shadow:0 2px 8px rgba(109,40,217,0.07);
-  --shadow-md:0 8px 24px rgba(109,40,217,0.15)
+  --shadow:0 2px 8px rgba(83,85,159,0.07);
+  --shadow-md:0 8px 24px rgba(83,85,159,0.15)
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple)!important;box-shadow:0 0 0 3px rgba(124,58,237,0.12)!important}
+body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple)!important;box-shadow:0 0 0 3px rgba(105,107,198,0.12)!important}
 ::-webkit-scrollbar{width:4px;height:0}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
