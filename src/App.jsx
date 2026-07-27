@@ -226,9 +226,9 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
   const insta=salonConfig?.instagram||'@clocks.school'
 
   return <div style={{paddingBottom:88}}>
-    <div style={{position:'relative',height:260,overflow:'hidden',background:'#D3D3EE'}}>
+    <div style={{position:'relative',height:260,overflow:'hidden',background:tab==='juventud'?'#000':'#D3D3EE'}}>
       {tab==='juventud'
-        ? <img src="/images/hero-juventud.png" alt="Colaboración CF Juventud" style={{width:'100%',height:'100%',objectFit:'cover'}}/>
+        ? <img src="/images/hero-juventud.png" alt="Colaboración CF Juventud" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
         : HERO.map((src,i)=><div key={i} style={{position:'absolute',inset:0,opacity:hi===i?1:0,transition:'opacity .85s'}}>
             <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.style.background=`hsl(${260+i*15},25%,${65+i*4}%)`}}/>
           </div>)}
