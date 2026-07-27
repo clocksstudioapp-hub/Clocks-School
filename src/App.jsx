@@ -55,6 +55,10 @@ const alvaroEffDur = (sty, svc) => {
   return (isAlvaro&&isQuickSvc) ? 30 : svc.duration
 }
 
+// Punto unico de referencia al logo. Cuando lleguen los logos propios de
+// School, se cambia aqui o se sobrescribe el fichero.
+const LOGO_H = '/images/logohorizontalmorado-trim.webp'
+
 const HERO = ['images/hero-1.jpg','images/hero-2.jpg','images/hero-3.jpg','images/hero-4.jpg']
 const GALL = ['images/work-1.jpg','images/work-2.jpg','images/work-3.jpg','images/work-4.jpg','images/work-5.jpg','images/work-6.jpg']
 
@@ -196,6 +200,7 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
 function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[]}) {
   const [hi,setHi]=useState(0)
+  const [logoOk,setLogoOk]=useState(true)
   const [tab,setTab]=useState('servicios')
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
 
@@ -237,20 +242,19 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
       </div>
     </div>
 
-    <div style={{background:'var(--white)',padding:'20px 20px 16px',borderBottom:'1px solid var(--border)'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <div>
-          <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:7}}>
-            <div style={{width:8,height:8,borderRadius:'50%',background:isOpen?'var(--green)':'var(--text3)',boxShadow:isOpen?'0 0 8px var(--green)':'none',animation:isOpen?'glow 2.2s ease-in-out infinite':'none'}}/>
-            <span style={{color:'var(--text3)',fontSize:12,fontWeight:500,letterSpacing:0.3}}>{isOpen?'Abierto ahora':'Cerrado'}</span>
-          </div>
-          <h1 style={{fontSize:36,fontWeight:900,color:'var(--text)',letterSpacing:-2.5,lineHeight:1,marginBottom:3}}>CLOCKS</h1>
-          <p style={{fontSize:11,fontWeight:700,color:'var(--purple)',letterSpacing:2.5,textTransform:'uppercase',marginBottom:4}}>School · Barbería</p>
-          <p style={{fontSize:12,color:'var(--text3)'}}>Zaragoza</p>
-        </div>
-        <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 6px 20px rgba(105,107,198,0.38)',flexShrink:0}}>
-          <ClockSVG size={30}/>
-        </div>
+    <div style={{height:95,background:'var(--white)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'0 16px',borderBottom:'1px solid var(--border)'}}>
+      {logoOk
+        ?<img src={LOGO_H} alt="Clocks School" style={{height:66,width:'auto',display:'block',flexShrink:0}} onError={()=>setLogoOk(false)}/>
+        :<span style={{fontSize:30,fontWeight:900,color:'var(--purple)',letterSpacing:-1.6,flexShrink:0}}>CLOCKS</span>}
+      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontFamily:'inherit',lineHeight:1.2,flexShrink:0}}>
+        <span aria-label={isOpen?'Estado: abierto ahora':'Estado: cerrado'} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px 5px 9px',borderRadius:18,background:isOpen?'var(--green-bg)':'var(--bg)',border:`1px solid ${isOpen?'rgba(22,163,74,0.22)':'var(--border2)'}`}}>
+          <span style={{width:7,height:7,borderRadius:'50%',background:isOpen?'var(--green)':'var(--text3)',boxShadow:isOpen?'0 0 8px var(--green)':'none',animation:isOpen?'glow 2.2s ease-in-out infinite':'none',flexShrink:0}}/>
+          <span style={{fontSize:10.5,fontWeight:800,color:isOpen?'var(--green)':'var(--text3)',letterSpacing:'0.05em',textTransform:'uppercase'}}>{isOpen?'Abierto':'Cerrado'}</span>
+        </span>
+        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:600,color:'var(--text2)'}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Zaragoza
+        </span>
       </div>
     </div>
 
