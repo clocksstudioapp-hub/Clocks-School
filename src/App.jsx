@@ -6,19 +6,19 @@ import { getSlotsForDay } from './availability.js'
 // ═══ CSS ══════════════════════════════════════════════════════════════════════
 const CSS = `
 :root{
-  --bg:#F8F5FF;--white:#FFFFFF;--border:#EDE9FE;--border2:#DDD6FE;
-  --text:#1C1C1E;--text2:#4B5563;--text3:#9CA3AF;
-  --purple:#7C3AED;--purple-l:#A78BFA;--purple-d:#6D28D9;
-  --purple-bg:#EDE9FE;--purple-bg2:#F3F0FF;
+  --bg:#F7F7FD;--white:#FFFFFF;--border:#E7E7F6;--border2:#D3D3EE;
+  --text:#2D2D2F;--text2:#4B5563;--text3:#9CA3AF;
+  --purple:#696BC6;--purple-l:#9294D6;--purple-d:#53559F;
+  --purple-bg:#E7E7F6;--purple-bg2:#F2F2FB;
   --green:#22C55E;--green-bg:rgba(34,197,94,0.10);
-  --yellow:#F59E0B;--orange:#F97316;--orange-bg:rgba(249,115,22,0.09);
+  --yellow:#F59E0B;--yellow-bg:rgba(245,158,11,0.10);--orange:#F97316;--orange-bg:rgba(249,115,22,0.09);
   --red:#EF4444;--red-bg:rgba(239,68,68,0.08);
-  --shadow:0 2px 8px rgba(109,40,217,0.07);
-  --shadow-md:0 8px 24px rgba(109,40,217,0.15)
+  --shadow:0 2px 8px rgba(83,85,159,0.07);
+  --shadow-md:0 8px 24px rgba(83,85,159,0.15)
 }
 *{margin:0;padding:0;box-sizing:border-box}
-body{background:var(--bg);color:var(--text);font-family:'DM Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple)!important;box-shadow:0 0 0 3px rgba(124,58,237,0.12)!important}
+body{background:var(--bg);color:var(--text);font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--purple)!important;box-shadow:0 0 0 3px rgba(105,107,198,0.12)!important}
 ::-webkit-scrollbar{width:4px;height:0}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
 @keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes scaleIn{from{opacity:0;transform:scale(0.95)}to{opacity:1;transform:scale(1)}}
@@ -44,7 +44,6 @@ const fDF = d => `${dayF[d.getDay()]}, ${fD(d)}`
 const fS = d => `${d.getDate()} ${MS[d.getMonth()]}`
 const parseDate = s => { const [y,m,d]=s.split('-').map(Number); return new Date(y,m-1,d) }
 const gMD = (y,m) => { const f=new Date(y,m,1),l=new Date(y,m+1,0); let s=f.getDay()-1; if(s<0)s=6; const d=[]; for(let i=0;i<s;i++)d.push(null); for(let i=1;i<=l.getDate();i++)d.push(new Date(y,m,i)); return d }
-const svcIcon = n => { const s=(n||'').toLowerCase(); if(s.includes('barba'))return'🪒'; if(s.includes('ceja'))return'✦'; if(s.includes('color')||s.includes('mecha'))return'🎨'; return'✂️' }
 
 // Álvaro tiene slots de 30 min para cortes y barba
 const alvaroEffDur = (sty, svc) => {
@@ -56,8 +55,53 @@ const alvaroEffDur = (sty, svc) => {
   return (isAlvaro&&isQuickSvc) ? 30 : svc.duration
 }
 
+// Punto unico de referencia al logo. Cuando lleguen los logos propios de
+// School, se cambia aqui o se sobrescribe el fichero.
+const LOGO_H = '/images/logohorizontalmorado-trim.webp'
+
 const HERO = ['images/hero-1.jpg','images/hero-2.jpg','images/hero-3.jpg','images/hero-4.jpg']
 const GALL = ['images/work-1.jpg','images/work-2.jpg','images/work-3.jpg','images/work-4.jpg','images/work-5.jpg','images/work-6.jpg']
+
+// Service category detector — used by <ServiceIcon/>
+const serviceKind = n => {
+  const s = (n||'').toLowerCase()
+  if(s.includes('barba')&&!s.includes('cejas'))return'beard'
+  if(s.includes('ceja'))return'eyebrow'
+  if(s.includes('color')||s.includes('tinte'))return'color'
+  if(s.includes('mecha')||s.includes('decolor'))return'highlights'
+  if(s.includes('lavad')||(s.includes('champ')&&s.includes('serv')))return'wash'
+  if(s.includes('tratam')||s.includes('mascarill')||s.includes('hidrat')||s.includes('keratin'))return'treatment'
+  if(s.includes('afeit')||s.includes('shave'))return'shave'
+  if(s.includes('niñ')||s.includes('kids')||s.includes('infantil'))return'kids'
+  if(s.includes('pack')||s.includes('combo'))return'pack'
+  if(s.includes('diseñ')||s.includes('design'))return'design'
+  if(s.includes('peinad')||s.includes('styling')||s.includes('moldead'))return'styling'
+  if(s.includes('masaj')||s.includes('relax'))return'massage'
+  return 'haircut'
+}
+// SVG glyphs — viewBox 32x32, currentColor stroke, line-art style
+const SERVICE_SVG = {
+  haircut:    <><path d="M12 6l8 8M20 6l-8 8M9 22a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM23 22a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM11 19l8-8M21 19l-8-8" strokeWidth="1.8"/></>,
+  beard:      <><path d="M12 6c0 4 2 6 4 6s4-2 4-6"/><path d="M16 12v3"/><circle cx="12" cy="9" r="0.7" fill="currentColor" stroke="none"/><circle cx="20" cy="9" r="0.7" fill="currentColor" stroke="none"/><path d="M9 16c0 7 3 12 7 12s7-5 7-12c-1 0-3 1-7 1s-6-1-7-1z"/><path d="M11 19c1 0 1-1 2-1M21 19c-1 0-1-1-2-1" strokeWidth="1.4"/></>,
+  eyebrow:    <><path d="M5 15c4-4 12-4 22 0"/><path d="M7 19c3-3 11-3 18 0" strokeOpacity="0.45"/><circle cx="16" cy="22" r="1.2" fill="currentColor" stroke="none"/></>,
+  color:      <><path d="M16 5c-3 5-7 8-7 12a7 7 0 1 0 14 0c0-4-4-7-7-12z"/><path d="M11 16c1 3 3 5 5 5" strokeOpacity="0.5"/><circle cx="22" cy="9" r="1.5" fill="currentColor" stroke="none"/><circle cx="9" cy="11" r="1" fill="currentColor" stroke="none"/></>,
+  highlights: <><path d="M10 5v8M14 5v10M18 5v9M22 5v11"/><path d="M8 14h16l-2 12H10z"/><path d="M11 18l1 6M17 18l1 6M22 18l-1 6" strokeOpacity="0.55"/></>,
+  wash:       <><path d="M16 5c-1 0-3 2-3 4v2"/><rect x="11" y="11" width="10" height="16" rx="2.5"/><path d="M11 16h10" strokeOpacity="0.5"/><circle cx="14" cy="20" r="0.8" fill="currentColor" stroke="none"/><circle cx="18" cy="22" r="0.6" fill="currentColor" stroke="none"/></>,
+  treatment:  <><path d="M16 4c-2 4-5 7-5 11a5 5 0 0 0 10 0c0-4-3-7-5-11z"/><path d="M22 7l1.5 1.5M22 7l-1.5 1.5M22 7l-1 -1.5M22 7l1.5 -.5" strokeWidth="1.4"/><path d="M9 18l1 1M9 18l1 -.5M9 18l-1 .5M9 18l-1 -1" strokeWidth="1.4"/></>,
+  shave:      <><path d="M9 6h14v3a2 2 0 0 1-2 2H11a2 2 0 0 1-2-2V6z"/><path d="M14 11h4v4h-4z"/><rect x="13" y="15" width="6" height="13" rx="1.5"/><path d="M11 7.5h2M19 7.5h2" strokeWidth="2.2"/></>,
+  kids:       <><path d="M11 6l5 5M21 6l-5 5M9 17a3 3 0 1 1 0-6 3 3 0 0 1 0 6zM23 17a3 3 0 0 1-3 3 3 3 0 0 1-3-3 3 3 0 0 1 3-3 3 3 0 0 1 3 3z"/><circle cx="20" cy="22" r="5"/><path d="M18 22c1 1.5 3 1.5 4 0" strokeWidth="1.4"/><circle cx="18.5" cy="20.5" r="0.5" fill="currentColor" stroke="none"/><circle cx="21.5" cy="20.5" r="0.5" fill="currentColor" stroke="none"/></>,
+  pack:       <><rect x="6" y="11" width="20" height="16" rx="2"/><rect x="9" y="8" width="14" height="3" rx="1" strokeOpacity="0.7"/><rect x="11" y="5" width="10" height="3" rx="1" strokeOpacity="0.4"/><path d="M14 17l4 4M18 17l-4 4" strokeWidth="1.6" strokeOpacity="0.6"/></>,
+  design:     <><path d="M18 4l-9 14h6l-2 10 9-14h-6z"/></>,
+  styling:    <><path d="M5 11h22a1 1 0 0 1 1 1v3H4v-3a1 1 0 0 1 1-1z"/><path d="M6 15v4M9 15v6M12 15v4M15 15v6M18 15v4M21 15v6M24 15v4M27 15v6" strokeWidth="1.6"/><path d="M4 24c4-2 8 2 12 0s8 2 12 0" strokeOpacity="0.6"/></>,
+  massage:    <><circle cx="11" cy="11" r="3"/><circle cx="21" cy="11" r="3"/><circle cx="16" cy="20" r="3"/><circle cx="9" cy="22" r="2" strokeOpacity="0.5"/><circle cx="23" cy="22" r="2" strokeOpacity="0.5"/></>,
+}
+function ServiceIcon({ name, sel = false, size = 22 }) {
+  const kind = serviceKind(name)
+  const color = sel ? '#fff' : 'var(--purple)'
+  return <svg width={size} height={size} viewBox="0 0 32 32" fill="none" stroke={color} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" style={{color,display:'block',filter:sel?'drop-shadow(0 1px 2px rgba(0,0,0,0.18))':'none'}}>
+    {SERVICE_SVG[kind] || SERVICE_SVG.haircut}
+  </svg>
+}
 
 // ═══ ATOMS ════════════════════════════════════════════════════════════════════
 const Sp = () => <div style={{display:'flex',justifyContent:'center',padding:40}}>
@@ -80,7 +124,7 @@ function Bt({children,onClick,disabled,full,variant='primary',small,style:sx,...
     border:p?'none':d?'1px solid rgba(239,68,68,0.15)':'1px solid var(--border)',
     borderRadius:small?10:14,cursor:disabled?'default':'pointer',transition:'all .2s',
     display:'inline-flex',alignItems:'center',justifyContent:'center',gap:8,
-    boxShadow:p&&!disabled?'0 4px 16px rgba(124,58,237,0.38)':'none',
+    boxShadow:p&&!disabled?'0 4px 16px rgba(105,107,198,0.38)':'none',
     ...sx
   }} {...rest}>{children}</button>
 }
@@ -119,33 +163,44 @@ const ClockSVG = ({size=28,color='#fff'}) => <svg width={size} height={size} vie
 // ═══ SERVICE CARD ═════════════════════════════════════════════════════════════
 function SvcCard({s,sel,onClick,i,bookBtn}) {
   return <div onClick={onClick} className={`anim d${(i%5)+1}`} style={{
-    display:'flex',alignItems:'center',gap:14,padding:'16px 18px',borderRadius:18,cursor:'pointer',
+    position:'relative',padding:'18px 20px',borderRadius:18,cursor:'pointer',
     background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',
     border:sel?'none':'1.5px solid var(--border)',
-    boxShadow:sel?'0 12px 28px rgba(124,58,237,0.28)':'var(--shadow)',
-    marginBottom:10,transition:'all .2s'
-  }}>
-    <div style={{width:44,height:44,borderRadius:14,flexShrink:0,background:sel?'rgba(255,255,255,0.18)':'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:20}}>
-      {svcIcon(s.name)}
-    </div>
-    <div style={{flex:1,minWidth:0}}>
-      <div style={{display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
-        <span style={{fontSize:14,fontWeight:700,color:sel?'#fff':'var(--text)'}}>{s.name}</span>
-        {s.category==='popular'&&<span style={{fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:6,background:sel?'rgba(255,255,255,0.22)':'var(--purple-bg)',color:sel?'#fff':'var(--purple)'}}>TOP</span>}
+    boxShadow:sel?'0 12px 28px rgba(105,107,198,0.28)':'var(--shadow)',
+    marginBottom:12,transition:'transform .15s, box-shadow .2s'
+  }}
+  onMouseDown={e=>e.currentTarget.style.transform='scale(0.985)'}
+  onMouseUp={e=>e.currentTarget.style.transform='scale(1)'}
+  onMouseLeave={e=>e.currentTarget.style.transform='scale(1)'}
+  onTouchStart={e=>e.currentTarget.style.transform='scale(0.985)'}
+  onTouchEnd={e=>e.currentTarget.style.transform='scale(1)'}>
+    {/* Accent bar a la izquierda (vertical) para identidad de marca */}
+    {!sel && <div style={{position:'absolute',left:0,top:14,bottom:14,width:3,borderRadius:'0 3px 3px 0',background:s.category==='popular'?'linear-gradient(180deg,var(--purple),var(--purple-l))':'var(--border2)'}}/>}
+    <div style={{display:'flex',alignItems:'flex-start',gap:14}}>
+      <div style={{flex:1,minWidth:0}}>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:6,flexWrap:'wrap'}}>
+          <span style={{fontSize:15,fontWeight:700,color:sel?'#fff':'var(--text)',letterSpacing:-0.1}}>{s.name}</span>
+          {s.category==='popular'&&<span style={{fontSize:9,fontWeight:800,padding:'2px 7px',borderRadius:6,background:sel?'rgba(255,255,255,0.22)':'var(--purple-bg)',color:sel?'#fff':'var(--purple)',letterSpacing:'0.08em'}}>TOP</span>}
+        </div>
+        <div style={{fontSize:12,color:sel?'rgba(255,255,255,0.78)':'var(--text3)',lineHeight:1.4,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap'}}>
+          <span style={{display:'inline-flex',alignItems:'center',gap:4,fontWeight:600,color:sel?'rgba(255,255,255,0.92)':'var(--text2)'}}>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+            {s.duration} min
+          </span>
+          {s.description && <><span style={{opacity:0.5}}>·</span><span>{s.description}</span></>}
+        </div>
       </div>
-      <div style={{fontSize:12,color:sel?'rgba(255,255,255,0.65)':'var(--text3)',marginTop:3}}>
-        {s.duration} min{s.description?` · ${s.description}`:''}
+      <div style={{flexShrink:0,textAlign:'center',display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:64}}>
+        <div style={{fontSize:22,fontWeight:900,color:sel?'#fff':'var(--purple)',letterSpacing:-1,lineHeight:1}}>{Number(s.price).toFixed(0)}€</div>
+        {bookBtn&&!sel&&<button onClick={e=>{e.stopPropagation();onClick()}} style={{fontSize:11,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:9,padding:'6px 12px',cursor:'pointer',fontFamily:'inherit',fontWeight:700,boxShadow:'0 3px 10px rgba(105,107,198,0.32)',letterSpacing:0.2,minHeight:28}}>Reservar</button>}
       </div>
-    </div>
-    <div style={{flexShrink:0,textAlign:'right',display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6}}>
-      <div style={{fontSize:20,fontWeight:900,color:sel?'#fff':'var(--purple)'}}>{Number(s.price).toFixed(0)}€</div>
-      {bookBtn&&!sel&&<button onClick={e=>{e.stopPropagation();onClick()}} style={{fontSize:11,color:'var(--purple)',background:'var(--purple-bg)',border:'none',borderRadius:8,padding:'4px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:700}}>Reservar</button>}
     </div>
   </div>
 }
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
 function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[]}) {
   const [hi,setHi]=useState(0)
+  const [logoOk,setLogoOk]=useState(true)
   const [tab,setTab]=useState('servicios')
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
 
@@ -169,11 +224,11 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
   const insta=salonConfig?.instagram||'@clocks.school'
 
   return <div style={{paddingBottom:88}}>
-    <div style={{position:'relative',height:260,overflow:'hidden',background:'#DDD6FE'}}>
+    <div style={{position:'relative',height:260,overflow:'hidden',background:'#D3D3EE'}}>
       {HERO.map((src,i)=><div key={i} style={{position:'absolute',inset:0,opacity:hi===i?1:0,transition:'opacity .85s'}}>
         <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.style.background=`hsl(${260+i*15},25%,${65+i*4}%)`}}/>
       </div>)}
-      <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(109,40,217,0.08) 0%,rgba(109,40,217,0.55) 100%)'}}/>
+      <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(83,85,159,0.08) 0%,rgba(83,85,159,0.55) 100%)'}}/>
       <div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',display:'flex',gap:6,zIndex:3}}>
         {HERO.map((_,i)=><button key={i} onClick={()=>setHi(i)} style={{width:hi===i?20:6,height:6,borderRadius:3,border:'none',cursor:'pointer',background:'#fff',opacity:hi===i?1:0.5,transition:'all .3s'}}/>)}
       </div>
@@ -187,20 +242,19 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
       </div>
     </div>
 
-    <div style={{background:'var(--white)',padding:'20px 20px 16px',borderBottom:'1px solid var(--border)'}}>
-      <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
-        <div>
-          <div style={{display:'flex',alignItems:'center',gap:7,marginBottom:7}}>
-            <div style={{width:8,height:8,borderRadius:'50%',background:isOpen?'var(--green)':'var(--text3)',boxShadow:isOpen?'0 0 8px var(--green)':'none',animation:isOpen?'glow 2.2s ease-in-out infinite':'none'}}/>
-            <span style={{color:'var(--text3)',fontSize:12,fontWeight:500,letterSpacing:0.3}}>{isOpen?'Abierto ahora':'Cerrado'}</span>
-          </div>
-          <h1 style={{fontSize:36,fontWeight:900,color:'var(--text)',letterSpacing:-2.5,lineHeight:1,marginBottom:3}}>CLOCKS</h1>
-          <p style={{fontSize:11,fontWeight:700,color:'var(--purple)',letterSpacing:2.5,textTransform:'uppercase',marginBottom:4}}>School · Barbería</p>
-          <p style={{fontSize:12,color:'var(--text3)'}}>Zaragoza</p>
-        </div>
-        <div style={{width:54,height:54,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 6px 20px rgba(124,58,237,0.38)',flexShrink:0}}>
-          <ClockSVG size={30}/>
-        </div>
+    <div style={{height:95,background:'var(--white)',display:'flex',alignItems:'center',justifyContent:'space-between',gap:12,padding:'0 16px',borderBottom:'1px solid var(--border)'}}>
+      {logoOk
+        ?<img src={LOGO_H} alt="Clocks School" style={{height:66,width:'auto',display:'block',flexShrink:0}} onError={()=>setLogoOk(false)}/>
+        :<span style={{fontSize:30,fontWeight:900,color:'var(--purple)',letterSpacing:-1.6,flexShrink:0}}>CLOCKS</span>}
+      <div style={{display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6,fontFamily:'inherit',lineHeight:1.2,flexShrink:0}}>
+        <span aria-label={isOpen?'Estado: abierto ahora':'Estado: cerrado'} style={{display:'inline-flex',alignItems:'center',gap:6,padding:'5px 10px 5px 9px',borderRadius:18,background:isOpen?'var(--green-bg)':'var(--bg)',border:`1px solid ${isOpen?'rgba(22,163,74,0.22)':'var(--border2)'}`}}>
+          <span style={{width:7,height:7,borderRadius:'50%',background:isOpen?'var(--green)':'var(--text3)',boxShadow:isOpen?'0 0 8px var(--green)':'none',animation:isOpen?'glow 2.2s ease-in-out infinite':'none',flexShrink:0}}/>
+          <span style={{fontSize:10.5,fontWeight:800,color:isOpen?'var(--green)':'var(--text3)',letterSpacing:'0.05em',textTransform:'uppercase'}}>{isOpen?'Abierto':'Cerrado'}</span>
+        </span>
+        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:11.5,fontWeight:600,color:'var(--text2)'}}>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2.2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+          Zaragoza
+        </span>
       </div>
     </div>
 
@@ -239,19 +293,27 @@ function Landing({svcs,stys,user,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salo
     </div>}
 
     {tab==='detalles'&&<div style={{padding:16}}>
-      {[
-        {i:'📍',l:'Dirección',t:addr},
-        {i:'🕐',l:'Horario',t:'Lunes — Viernes: 10:00 – 14:00 y 16:00 – 20:00\nSábado y Domingo: Cerrado'},
-        {i:'📞',l:'Teléfono',t:phone},
-        {i:'📸',l:'Instagram',t:insta}
-      ].map((d,idx)=><div key={idx} style={{display:'flex',gap:14,alignItems:'flex-start',padding:'14px 0',borderBottom:idx<3?'1px solid var(--border)':'none'}}>
-        <div style={{width:40,height:40,borderRadius:12,background:'var(--purple-bg)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,fontSize:18}}>{d.i}</div>
-        <div><div style={{fontSize:12,color:'var(--text3)',fontWeight:500,marginBottom:3}}>{d.l}</div><div style={{fontSize:14,fontWeight:500,lineHeight:1.55,whiteSpace:'pre-line',color:'var(--text)'}}>{d.t}</div></div>
-      </div>)}
+      {(()=>{
+        const horarioTxt=salonSchedule.length>0?['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'].map((d,i)=>{const s=salonSchedule.find(x=>x.day_of_week===i);return s?.active?`${d}: ${s.open_time?.slice(0,5)} – ${s.close_time?.slice(0,5)}`:null}).filter(Boolean).join('\n')||'Ver horarios en el local':'Ver horarios en el local'
+        const items=[
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0z"/><circle cx="12" cy="10" r="3"/></svg>,l:'Dirección',t:addr,href:`https://maps.google.com/?q=${encodeURIComponent(addr)}`,cta:'Ver en mapa'},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>,l:'Horario',t:horarioTxt,href:null,cta:null},
+          {icon:<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.13.96.36 1.9.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.9.34 1.85.57 2.81.7A2 2 0 0 1 22 16.92z"/></svg>,l:'Teléfono',t:phone,href:`tel:${phone.replace(/\s/g,'')}`,cta:'Llamar'},
+          {icon:<svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="20" rx="5.5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.5" cy="6.5" r="1.1" fill="#fff" stroke="none"/></svg>,grad:'radial-gradient(circle at 30% 107%,#fdf497 0%,#fdf497 5%,#fd5949 45%,#d6249f 60%,#285AEB 90%)',l:'Instagram',t:insta,href:`https://instagram.com/${insta.replace('@','')}`,cta:'Abrir Instagram'}
+        ]
+        return<div style={{display:'flex',flexDirection:'column',gap:10}}>{items.map((d,idx)=><div key={idx} className={`anim d${idx+1}`} style={{display:'flex',gap:14,alignItems:'flex-start',padding:'16px 18px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:16,boxShadow:'var(--shadow)'}}>
+          <div style={{width:42,height:42,borderRadius:13,background:d.grad||'linear-gradient(135deg,var(--purple-bg2),var(--purple-bg))',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0,border:d.grad?'none':'1px solid var(--border)',boxShadow:d.grad?'0 3px 10px rgba(214,36,159,0.30)':'none'}}>{d.icon}</div>
+          <div style={{flex:1,minWidth:0}}>
+            <div style={{fontSize:11,color:'var(--text3)',fontWeight:700,marginBottom:4,letterSpacing:'0.06em',textTransform:'uppercase'}}>{d.l}</div>
+            <div style={{fontSize:14,fontWeight:600,lineHeight:1.55,whiteSpace:'pre-line',color:'var(--text)'}}>{d.t}</div>
+            {d.href&&d.cta&&<a href={d.href} target={d.href.startsWith('http')?'_blank':undefined} rel="noopener noreferrer" style={{display:'inline-block',marginTop:8,fontSize:12,fontWeight:700,color:'var(--purple)',textDecoration:'none',padding:'5px 11px',background:'var(--purple-bg)',borderRadius:8}}>{d.cta} →</a>}
+          </div>
+        </div>)}</div>
+      })()}
     </div>}
 
     <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 18px',zIndex:50}}>
-      <button onClick={()=>onRes(null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 6px 20px rgba(124,58,237,0.42)'}}>
+      <button onClick={()=>onRes(null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 6px 20px rgba(105,107,198,0.42)'}}>
         Reservar cita
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
       </button>
@@ -274,7 +336,7 @@ function ResetPasswordForm({onDone}) {
   return<div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',padding:'0 28px'}}>
     <div className="scale-in" style={{width:'100%'}}>
       <div style={{textAlign:'center',marginBottom:32}}>
-        <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(124,58,237,0.38)'}}>
+        <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(105,107,198,0.38)'}}>
           <ClockSVG size={32}/>
         </div>
         <h1 style={{fontSize:24,fontWeight:900,marginBottom:6,letterSpacing:-1,color:'var(--text)'}}>{ok?'¡Listo!':'Nueva contraseña'}</h1>
@@ -331,7 +393,7 @@ function Auth({onLogin,onBack}) {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)'}}>
     <div style={{padding:'12px 20px 0'}}><BB onClick={onBack} label="Volver"/></div>
     <div style={{padding:'36px 28px 24px',textAlign:'center'}}>
-      <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(124,58,237,0.38)'}}>
+      <div style={{width:62,height:62,borderRadius:20,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 18px',boxShadow:'0 6px 22px rgba(105,107,198,0.38)'}}>
         <ClockSVG size={32}/>
       </div>
       <h1 style={{fontSize:24,fontWeight:900,marginBottom:4,letterSpacing:-1,color:'var(--text)'}}>Clocks School</h1>
@@ -490,7 +552,7 @@ setSlots(unionSlots)
       <h2 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Elige profesional</h2>
       <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:6}}>
         {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
-          <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(124,58,237,0.32)':'none'}}>
+          <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(105,107,198,0.32)':'none'}}>
             {s.photo_url?<img src={s.photo_url} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:s.name[0]}
           </div>
           <span style={{fontSize:12,fontWeight:sl?700:500,color:sl?'var(--purple)':'var(--text2)',textAlign:'center'}}>{s.name}</span>
@@ -538,7 +600,7 @@ setSlots(unionSlots)
         <p style={{fontSize:13,fontWeight:700,color:'var(--text)',marginBottom:12}}>{fDF(date)}</p>
         {sL?<Sp/>:slots.length===0?<Em icon="😔" text="Sin horarios disponibles este día"/>:
           <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
-            {slots.map(s=><button key={s} onClick={()=>setTime(s)} style={{padding:'10px 6px',borderRadius:12,border:time===s?'none':'1.5px solid var(--border)',background:time===s?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',color:time===s?'#fff':'var(--text)',fontSize:13,fontWeight:time===s?700:500,cursor:'pointer',fontFamily:'inherit',boxShadow:time===s?'0 4px 12px rgba(124,58,237,0.30)':'none',transition:'all .15s'}}>{s}</button>)}
+            {slots.map(s=><button key={s} onClick={()=>setTime(s)} style={{padding:'10px 6px',borderRadius:12,border:time===s?'none':'1.5px solid var(--border)',background:time===s?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--white)',color:time===s?'#fff':'var(--text)',fontSize:13,fontWeight:time===s?700:500,cursor:'pointer',fontFamily:'inherit',boxShadow:time===s?'0 4px 12px rgba(105,107,198,0.30)':'none',transition:'all .15s'}}>{s}</button>)}
           </div>}
       </div>}
 
@@ -587,7 +649,7 @@ function Account({user,profile,stys,onBook,onLogout,onBack,onUp}) {
     <div style={{padding:'8px 20px 0'}}><BB onClick={onBack} label="Volver"/></div>
     <div style={{padding:'8px 20px 20px',background:'var(--white)',borderBottom:'1px solid var(--border)'}}>
       <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16}}>
-        <div style={{width:52,height:52,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:800,color:'#fff',boxShadow:'0 4px 14px rgba(124,58,237,0.32)'}}>{ini}</div>
+        <div style={{width:52,height:52,borderRadius:16,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,fontWeight:800,color:'#fff',boxShadow:'0 4px 14px rgba(105,107,198,0.32)'}}>{ini}</div>
         <div style={{flex:1}}>
           <div style={{fontSize:17,fontWeight:700,color:'var(--text)'}}>{profile?.full_name}</div>
           <div style={{fontSize:13,color:'var(--text3)'}}>{user.email}</div>
@@ -860,7 +922,7 @@ function StyModal({data,onSave,onClose}) {
     {photo&&<div style={{marginBottom:14,borderRadius:12,overflow:'hidden',height:80,width:80,background:'var(--bg)',border:'1px solid var(--border)'}}><img src={photo} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/></div>}
     <div style={{display:'flex',alignItems:'center',gap:10,marginBottom:14}}>
       <span style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>Activo</span>
-      <button onClick={()=>setActive(!active)} style={{width:44,height:24,borderRadius:12,position:'relative',cursor:'pointer',border:'none',background:active?'var(--purple)':'var(--border)',transition:'all .3s',boxShadow:active?'0 2px 8px rgba(124,58,237,0.35)':'none'}}>
+      <button onClick={()=>setActive(!active)} style={{width:44,height:24,borderRadius:12,position:'relative',cursor:'pointer',border:'none',background:active?'var(--purple)':'var(--border)',transition:'all .3s',boxShadow:active?'0 2px 8px rgba(105,107,198,0.35)':'none'}}>
         <div style={{width:20,height:20,borderRadius:10,background:'#fff',position:'absolute',top:2,left:active?22:2,transition:'all .3s',boxShadow:'0 1px 3px rgba(0,0,0,0.15)'}}/>
       </button>
     </div>
@@ -915,7 +977,7 @@ function ShareTab() {
             ? <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5"><path d="M20 6L9 17l-5-5"/></svg>¡Copiado!</>
             : <><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>Copiar</>}
         </button>
-        <button onClick={share} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 16px rgba(124,58,237,0.38)'}}>
+        <button onClick={share} style={{flex:1,padding:'14px 0',borderRadius:14,border:'none',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',cursor:'pointer',fontFamily:'inherit',fontSize:14,fontWeight:700,color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 4px 16px rgba(105,107,198,0.38)'}}>
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
           Compartir enlace
         </button>
@@ -1123,7 +1185,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
     <div style={{padding:'14px 16px',background:'var(--white)',borderBottom:'1px solid var(--border)'}}>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10}}>
         <div style={{display:'flex',alignItems:'center',gap:10}}>
-          <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 3px 10px rgba(124,58,237,0.35)'}}>
+          <div style={{width:36,height:36,borderRadius:10,background:'linear-gradient(135deg,var(--purple),var(--purple-l))',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 3px 10px rgba(105,107,198,0.35)'}}>
             <ClockSVG size={20}/>
           </div>
           <div>
@@ -1135,7 +1197,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
       </div>
 
       {/* Selector barbero propio — solo para admin completo */}
-      {!isBarberMode&&<button onClick={()=>setShowStylistPicker(true)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:myStylist?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:myStylist?'none':'1.5px dashed var(--border2)',borderRadius:12,cursor:'pointer',transition:'all .2s',boxShadow:myStylist?'0 4px 14px rgba(124,58,237,0.28)':'none'}}>
+      {!isBarberMode&&<button onClick={()=>setShowStylistPicker(true)} style={{width:'100%',display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:myStylist?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:myStylist?'none':'1.5px dashed var(--border2)',borderRadius:12,cursor:'pointer',transition:'all .2s',boxShadow:myStylist?'0 4px 14px rgba(105,107,198,0.28)':'none'}}>
         {myStylist?<>
           <div style={{width:30,height:30,borderRadius:15,background:'rgba(255,255,255,0.25)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,fontWeight:700,color:'#fff',overflow:'hidden',flexShrink:0}}>
             {myStylist.photo_url?<img src={myStylist.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:myStylist.name[0]}
@@ -1160,7 +1222,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
       <div style={{display:'flex',flexDirection:'column',gap:8,marginBottom:16}}>
         {st.filter(s=>s.active).map(s=>{
           const sel=myStylistId===s.id
-          return<button key={s.id} onClick={()=>selectMyStylist(s.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:sel?'none':'1.5px solid var(--border)',cursor:'pointer',transition:'all .2s',boxShadow:sel?'0 4px 14px rgba(124,58,237,0.28)':'none'}}>
+          return<button key={s.id} onClick={()=>selectMyStylist(s.id)} style={{display:'flex',alignItems:'center',gap:12,padding:'12px 14px',borderRadius:12,background:sel?'linear-gradient(135deg,var(--purple),var(--purple-l))':'var(--bg)',border:sel?'none':'1.5px solid var(--border)',cursor:'pointer',transition:'all .2s',boxShadow:sel?'0 4px 14px rgba(105,107,198,0.28)':'none'}}>
             <div style={{width:38,height:38,borderRadius:19,background:sel?'rgba(255,255,255,0.22)':'var(--purple-bg)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,fontWeight:700,color:sel?'#fff':'var(--purple)',overflow:'hidden',flexShrink:0}}>
               {s.photo_url?<img src={s.photo_url} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}}/>:s.name[0]}
             </div>
@@ -1206,7 +1268,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
             {days.map((d,i)=>{
               if(!d)return<div key={'e'+i}/>
               const sl=toK(sd)===toK(d)
-              return<button key={toK(d)} onClick={()=>setSd(d)} style={{height:30,borderRadius:15,background:sl?'linear-gradient(135deg,var(--purple),var(--purple-l))':'transparent',border:'none',cursor:'pointer',fontSize:11,fontWeight:sl||isT(d)?700:400,color:sl?'#fff':isT(d)?'var(--purple)':'var(--text)',boxShadow:sl?'0 2px 8px rgba(124,58,237,0.3)':'none'}}>{d.getDate()}</button>
+              return<button key={toK(d)} onClick={()=>setSd(d)} style={{height:30,borderRadius:15,background:sl?'linear-gradient(135deg,var(--purple),var(--purple-l))':'transparent',border:'none',cursor:'pointer',fontSize:11,fontWeight:sl||isT(d)?700:400,color:sl?'#fff':isT(d)?'var(--purple)':'var(--text)',boxShadow:sl?'0 2px 8px rgba(105,107,198,0.3)':'none'}}>{d.getDate()}</button>
             })}
           </div>
         </div>
@@ -1315,7 +1377,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
         </div>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           {sv.map((s,i)=><div key={s.id} className={`anim d${(i%5)+1}`} style={{display:'flex',alignItems:'center',gap:12,padding:'14px 16px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:14,boxShadow:'var(--shadow)',opacity:s.active?1:0.5}}>
-            <div style={{width:36,height:36,borderRadius:10,background:'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:16,flexShrink:0}}>{svcIcon(s.name)}</div>
+            <div style={{width:36,height:36,borderRadius:10,background:'var(--purple-bg2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}><ServiceIcon name={s.name} size={18}/></div>
             <div style={{flex:1}}>
               <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{s.name}</div>
               <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{s.duration} min · {s.category==='popular'?'⭐ Popular':'Otro'}</div>
@@ -1479,7 +1541,7 @@ export default function App() {
 
   if(view==='loading')return<div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{CSS}</style><Sp/></div>
 
-  return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(109,40,217,0.06)'}}>
+  return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(83,85,159,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
     {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures}/>}
