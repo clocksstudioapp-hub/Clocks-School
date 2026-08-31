@@ -444,10 +444,12 @@ function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
       <button onClick={()=>setEditTeam({name:'',active:true})} style={{fontSize:12,color:'var(--purple)',background:'var(--purple-bg)',border:'1px solid var(--border)',borderRadius:8,padding:'5px 10px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>+ Añadir</button>
     </div>
     <div style={{display:'flex',flexDirection:'column',gap:6}}>
-      {teams.map(t=><div key={t.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:10,opacity:t.active?1:0.5}}>
+      {teams.map(t=>{const n=players.filter(p=>p.team_id===t.id).length
+      return <div key={t.id} style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:10,opacity:t.active?1:0.5}}>
         <span style={{flex:1,fontSize:13,fontWeight:500,color:'var(--text)'}}>{t.name}</span>
+        <span style={{fontSize:11,fontWeight:700,whiteSpace:'nowrap',padding:'3px 9px',borderRadius:8,color:n?'var(--purple)':'var(--text3)',background:n?'var(--purple-bg)':'rgba(156,163,175,0.12)'}}>{n}</span>
         <button onClick={()=>setEditTeam(t)} style={{fontSize:11,color:'var(--purple)',background:'var(--purple-bg)',border:'1px solid var(--border)',borderRadius:7,padding:'4px 9px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Editar</button>
-      </div>)}
+      </div>})}
     </div>
 
     {editTeam&&<CfTeamModal data={editTeam} onSave={saveTeam} onDelete={editTeam.id?()=>{delTeam(editTeam.id);setEditTeam(null)}:null} onClose={()=>setEditTeam(null)}/>}
