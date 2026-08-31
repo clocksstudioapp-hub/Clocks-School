@@ -204,7 +204,18 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
   const [logoOk,setLogoOk]=useState(true)
   const [tab,setTab]=useState(initialTab||'servicios')
   const isPlayer=profile?.role==='player'
+  const [cfStatus,setCfStatus]=useState('loading') // 'loading' | 'available' | 'used'
   useEffect(()=>{const t=setInterval(()=>setHi(i=>(i+1)%HERO.length),4500);return()=>clearInterval(t)},[])
+
+  // El estado del corte gratis vive aquí y no en CFJuventudTab porque la barra fija
+  // inferior también lo necesita: es ella la que se convierte en el CTA naranja.
+  useEffect(()=>{
+    if(!isPlayer||!cfService||!user){setCfStatus('available');return}
+    const[from,to]=monthRange(new Date())
+    supabase.from('appointments').select('id').eq('user_id',user.id).eq('service_id',cfService.id).eq('status','confirmed')
+      .gte('appointment_date',from).lte('appointment_date',to).maybeSingle()
+      .then(({data})=>setCfStatus(data?'used':'available'))
+  },[isPlayer,cfService,user])
 
   const spainParts=new Intl.DateTimeFormat('en-GB',{timeZone:'Europe/Madrid',weekday:'short',hour:'2-digit',minute:'2-digit',hour12:false}).formatToParts(new Date())
   const wkMap={Sun:0,Mon:1,Tue:2,Wed:3,Thu:4,Fri:5,Sat:6}
@@ -224,6 +235,10 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
   const addr=salonConfig?.address||'C/ José Pellicer, 29, Zaragoza'
   const phone=salonConfig?.phone||'620 96 48 50'
   const insta=salonConfig?.instagram||'@clocks.school'
+
+  // En la pestaña del club, si le queda corte gratis, la barra fija ES ese CTA.
+  // Nunca puede haber dos botones de reservar a la vez.
+  const cfFree=tab==='juventud'&&isPlayer&&!isA&&cfStatus==='available'&&!!cfService
 
   return <div style={{paddingBottom:88}}>
     <div style={{position:'relative',height:tab==='juventud'?'auto':260,overflow:'hidden',background:tab==='juventud'?'#5a5f9d':'#D3D3EE'}}>
@@ -317,13 +332,13 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
     </div>}
 
     {tab==='juventud'&&(isPlayer||isA)&&<div style={{padding:16}}>
-      <CFJuventudTab user={user} profile={profile} isA={isA} cfService={cfService} cfTeams={cfTeams} onRes={onRes}/>
+      <CFJuventudTab user={user} profile={profile} isA={isA} cfService={cfService} cfTeams={cfTeams} onRes={onRes} status={cfStatus}/>
     </div>}
 
     <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 18px',zIndex:50}}>
-      <button onClick={()=>onRes(null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:'0 6px 20px rgba(105,107,198,0.42)'}}>
-        Reservar cita
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>
+      <button onClick={()=>onRes(cfFree?cfService:null)} style={{width:'100%',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:cfFree?`linear-gradient(135deg,${CF_ORANGE},${CF_ORANGE_D})`:'linear-gradient(135deg,var(--purple),var(--purple-l))',border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',display:'flex',alignItems:'center',justifyContent:'center',gap:8,boxShadow:cfFree?'0 6px 20px rgba(242,106,33,0.42)':'0 6px 20px rgba(105,107,198,0.42)'}}>
+        {cfFree?'Reservar mi corte gratis':'Reservar cita'}
+        {!cfFree&&<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14"/><path d="M12 5l7 7-7 7"/></svg>}
       </button>
     </div>
   </div>
@@ -333,19 +348,10 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
 const CF_ORANGE='#F26A21', CF_ORANGE_D='#D9560F'
 const monthRange=d=>{const y=d.getFullYear(),m=d.getMonth();return[toK(new Date(y,m,1)),toK(new Date(y,m+1,0))]}
 
-function CFJuventudTab({user,profile,isA,cfService,cfTeams,onRes}) {
+function CFJuventudTab({user,profile,isA,cfService,cfTeams,onRes,status='loading'}) {
   if(isA) return <CFJuventudAdminPanel cfService={cfService} cfTeams={cfTeams}/>
 
-  const [status,setStatus]=useState('loading') // 'loading' | 'available' | 'used'
   const team=cfTeams.find(t=>t.id===profile?.team_id)
-
-  useEffect(()=>{
-    if(!cfService||!user){setStatus('available');return}
-    const[from,to]=monthRange(new Date())
-    supabase.from('appointments').select('id').eq('user_id',user.id).eq('service_id',cfService.id).eq('status','confirmed')
-      .gte('appointment_date',from).lte('appointment_date',to).maybeSingle()
-      .then(({data})=>setStatus(data?'used':'available'))
-  },[cfService,user])
 
   return <div>
     <div style={{maxWidth:340,margin:'0 auto',borderRadius:18,overflow:'hidden',boxShadow:'var(--shadow-md)'}}>
@@ -362,9 +368,6 @@ function CFJuventudTab({user,profile,isA,cfService,cfTeams,onRes}) {
             :<span style={{background:'rgba(156,163,175,0.15)',color:'var(--text3)',padding:'6px 14px',borderRadius:20,fontSize:12,fontWeight:800,whiteSpace:'nowrap'}}>Ya usado · vuelve el 1</span>}
       </div>
     </div>
-    {status==='available'&&cfService&&<button onClick={()=>onRes(cfService)} style={{width:'100%',maxWidth:340,margin:'14px auto 0',display:'block',padding:15,fontSize:15,fontWeight:700,color:'#fff',background:`linear-gradient(135deg,${CF_ORANGE},${CF_ORANGE_D})`,border:'none',borderRadius:14,cursor:'pointer',fontFamily:'inherit',boxShadow:'0 6px 20px rgba(242,106,33,0.42)'}}>
-      Reservar mi corte gratis
-    </button>}
   </div>
 }
 
