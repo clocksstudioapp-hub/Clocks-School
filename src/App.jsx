@@ -226,13 +226,13 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
   const insta=salonConfig?.instagram||'@clocks.school'
 
   return <div style={{paddingBottom:88}}>
-    <div style={{position:'relative',height:260,overflow:'hidden',background:tab==='juventud'?'#000':'#D3D3EE'}}>
+    <div style={{position:'relative',height:tab==='juventud'?'auto':260,overflow:'hidden',background:tab==='juventud'?'#5a5f9d':'#D3D3EE'}}>
       {tab==='juventud'
-        ? <img src="/images/hero-juventud.png" alt="Colaboración CF Juventud" style={{width:'100%',height:'100%',objectFit:'contain'}}/>
+        ? <img src="/images/hero-juventud.jpg" alt="Colaboración CF Juventud" style={{width:'100%',height:'auto',display:'block'}}/>
         : HERO.map((src,i)=><div key={i} style={{position:'absolute',inset:0,opacity:hi===i?1:0,transition:'opacity .85s'}}>
             <img src={src} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>{e.target.style.display='none';e.target.parentElement.style.background=`hsl(${260+i*15},25%,${65+i*4}%)`}}/>
           </div>)}
-      <div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(83,85,159,0.08) 0%,rgba(83,85,159,0.55) 100%)'}}/>
+      {tab!=='juventud'&&<div style={{position:'absolute',inset:0,background:'linear-gradient(to bottom,rgba(83,85,159,0.08) 0%,rgba(83,85,159,0.55) 100%)'}}/>}
       {tab!=='juventud'&&<div style={{position:'absolute',bottom:14,left:'50%',transform:'translateX(-50%)',display:'flex',gap:6,zIndex:3}}>
         {HERO.map((_,i)=><button key={i} onClick={()=>setHi(i)} style={{width:hi===i?20:6,height:6,borderRadius:3,border:'none',cursor:'pointer',background:'#fff',opacity:hi===i?1:0.5,transition:'all .3s'}}/>)}
       </div>}
