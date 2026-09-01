@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from './supabase'
 import { toK, aM, gS } from './timeUtils.js'
 import { getSlotsForDay } from './availability.js'
@@ -645,13 +645,23 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
     if(!teamId&&teams.length)setTeamId(teams[0].id)
   },[teams])
 
+  // Salida única hacia la landing. Va por aquí y no en el render, donde se
+  // llamaba a onDone() en mitad del renderizado: React avisa de ello y, ahora
+  // que onDone recarga el perfil, dispararía una petición por cada render.
+  const yaSalio=useRef(false)
+  const salir=async()=>{ if(yaSalio.current)return; yaSalio.current=true; await onDone() }
+  const esStaffOJugador=['player','admin','barber'].includes(profile?.role)
+  useEffect(()=>{ if(user&&esStaffOJugador)salir() },[user,esStaffOJugador])
+
   const activate=async()=>{
     if(!teamId){setEr('Selecciona tu equipo');return}
     setLd(true);setEr('')
     const{error}=await supabase.rpc('claim_player_role',{p_team_id:Number(teamId)})
+    if(error){setLd(false);setEr(error.message||'Error al activar la tarjeta');return}
+    // El perfil en memoria sigue diciendo role='client'. Sin recargarlo, la
+    // pestaña CF JUVENTUD no existe hasta que el usuario recargue la página.
+    await salir()
     setLd(false)
-    if(error){setEr(error.message||'Error al activar la tarjeta');return}
-    onDone()
   }
 
   const registerAndActivate=async()=>{
@@ -667,7 +677,7 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
       await onLogin(data.user)
       const{error:rpcErr}=await supabase.rpc('claim_player_role',{p_team_id:Number(teamId)})
       if(rpcErr)throw rpcErr
-      onDone()
+      await salir()
     } catch(e){
       if(e.message?.includes('already registered'))setEr('Email ya registrado')
       else setEr(e.message||'Error')
@@ -675,10 +685,7 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
     setLd(false)
   }
 
-  if(user&&(profile?.role==='player'||profile?.role==='admin'||profile?.role==='barber')){
-    onDone()
-    return <Sp/>
-  }
+  if(user&&esStaffOJugador)return <Sp/>
 
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)'}}>
     <div style={{padding:'32px 28px 26px',textAlign:'center'}}>
@@ -1852,6 +1859,10 @@ export default function App() {
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
     {view==='admin'&&user&&isA&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
     {view==='barber'&&user&&isBarber&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig} barberStylistId={profile?.stylist_id}/>}
-    {view==='player-onboarding'&&<PlayerOnboarding user={user} profile={profile} teams={cfTeams} onDone={()=>{setLandingTab('juventud');setView('landing')}} onLogin={async u=>{setUser(u);await lP(u.id)}}/>}
+    {view==='player-onboarding'&&<PlayerOnboarding user={user} profile={profile} teams={cfTeams} onDone={async()=>{
+      const{data:{user:u}}=await supabase.auth.getUser()
+      if(u)await lP(u.id)
+      setLandingTab('juventud');setView('landing')
+    }} onLogin={async u=>{setUser(u);await lP(u.id)}}/>}
   </div>
 }
