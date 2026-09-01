@@ -1126,6 +1126,12 @@ function WeeklyScheduleModal({stylist, onClose, onSaved, inline=false}) {
   return inline ? <div>{content}</div> : <Modal>{content}</Modal>
 }
 
+// salon_config guarda una fila por ajuste (id, key, value), no una fila ancha.
+// Convertirla en objeto es lo que faltaba: el código leía salonConfig?.address
+// sobre una fila suelta, así que address/phone/instagram siempre salían undefined
+// y se caía a los valores por defecto del propio código.
+const cfgMap=rows=>{const o={};(rows||[]).forEach(r=>{o[r.key]=r.value});return o}
+
 // ═══ MODAL CONFIG SALÓN ═══════════════════════════════════════════════════════
 function SalonConfigModal({config,onSave,onClose}) {
   const [addr,setAddr]=useState(config?.address||'')
@@ -1134,8 +1140,13 @@ function SalonConfigModal({config,onSave,onClose}) {
   const [saving,setSaving]=useState(false)
   const save=async()=>{
     setSaving(true)
-    if(config?.id){await supabase.from('salon_config').update({address:addr,phone,instagram:insta}).eq('id',config.id)}
-    else{await supabase.from('salon_config').insert({address:addr,phone,instagram:insta})}
+    // Se escribe fila a fila. Antes hacía update({address,phone,instagram}),
+    // columnas que no existen en esta tabla: el guardado no llegaba a aplicarse.
+    for(const[key,value]of[['address',addr],['phone',phone],['instagram',insta]]){
+      const{data:ex}=await supabase.from('salon_config').select('id').eq('key',key).maybeSingle()
+      if(ex)await supabase.from('salon_config').update({value}).eq('id',ex.id)
+      else await supabase.from('salon_config').insert({key,value})
+    }
     setSaving(false);onSave()
   }
   return <Modal>
@@ -1774,23 +1785,22 @@ export default function App() {
   const [landingTab,setLandingTab]=useState(undefined) // pestaña inicial de Landing, solo para el flujo /juventud
 
   const loadPublic=async()=>{
-    const[{data:sv},{data:st},{data:sc},{data:ss},{data:cl},{data:tm},{data:cfsv},{data:cfCfg}]=await Promise.all([
+    const[{data:sv},{data:st},{data:sc},{data:ss},{data:cl},{data:tm},{data:cfsv}]=await Promise.all([
       supabase.from('services').select('*').eq('active',true).eq('player_only',false).order('display_order'),
       supabase.from('stylists').select('*').eq('active',true).order('display_order'),
-      supabase.from('salon_config').select('*').limit(1).maybeSingle(),
+      supabase.from('salon_config').select('key,value'),
       supabase.from('salon_schedule').select('*').order('day_of_week'),
       supabase.from('salon_closures').select('start_date,end_date,reason'),
       supabase.from('cf_teams').select('*').eq('active',true).order('display_order'),
       supabase.from('services').select('*').eq('active',true).eq('player_only',true).maybeSingle(),
-      supabase.from('salon_config').select('key,value').in('key',['cf_open_to_all','cf_monthly_limit']),
     ])
-    const cfg={};(cfCfg||[]).forEach(r=>{cfg[r.key]=r.value})
+    const cfg=cfgMap(sc)
     const openToAll=String(cfg.cf_open_to_all).toLowerCase()==='true'
     // Con el interruptor abierto el corte del club entra en el catálogo público,
     // así que lo puede reservar cualquiera. Es intencionado: más citas, más
     // maniquíes para los alumnos.
     setSvcs(openToAll&&cfsv?[...(sv||[]),cfsv]:(sv||[]))
-    setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[]);setSalonClosures(cl||[])
+    setStys(st||[]);setSalonConfig(cfg);setSalonSchedule(ss||[]);setSalonClosures(cl||[])
     setCfTeams(tm||[]);setCfService(cfsv||null)
   }
 
@@ -1826,8 +1836,8 @@ export default function App() {
   const isBarber=profile?.role==='barber'
 
   const reloadSalonConfig=async()=>{
-    const{data}=await supabase.from('salon_config').select('*').limit(1).maybeSingle()
-    setSalonConfig(data||null)
+    const{data}=await supabase.from('salon_config').select('key,value')
+    setSalonConfig(cfgMap(data))
   }
 
   if(view==='loading')return<div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)',display:'flex',alignItems:'center',justifyContent:'center'}}><style>{CSS}</style><Sp/></div>
