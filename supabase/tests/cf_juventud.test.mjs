@@ -26,6 +26,7 @@ create table public.appointments(id serial primary key, user_id uuid, service_id
 create table public.salon_config(id serial primary key, key text, value text);
 insert into public.services values (1,'CORTE CLOCKS',2,60,true,false),(11,'Corte CF Juventud',0,60,true,true);
 insert into public.profiles values ('11111111-1111-1111-1111-111111111111','player',1),('22222222-2222-2222-2222-222222222222','client',null);
+insert into public.salon_config(id,key,value) values (1,'salon_name','Clocks School'),(2,'address','C/ Jose Pellicer 29'),(3,'phone','620 96 48 50'),(4,'instagram','@clocks.school');
 `)
 
 // La migración: solo reemplaza la función. El trigger ya existe en prod, así
@@ -39,7 +40,8 @@ const book=(u,s,d,st='confirmed')=>db.query('insert into public.appointments(use
 const setLimit=v=>db.query("update public.salon_config set value=$1 where key='cf_monthly_limit'",[String(v)])
 
 console.log('\nSemilla de configuración')
-const cfg=await db.query("select key,value from public.salon_config order by key")
+const cfg=await db.query("select key,value from public.salon_config where key like 'cf_%' order by key")
+ok('la secuencia desincronizada no rompe el insert (ids nuevos > 4)',(await db.query("select min(id)::int m from public.salon_config where key like 'cf_%'")).rows[0].m>4)
 ok('crea cf_monthly_limit=1 y cf_open_to_all=false', JSON.stringify(cfg.rows)==='[{"key":"cf_monthly_limit","value":"1"},{"key":"cf_open_to_all","value":"false"}]')
 
 console.log('\nLímite por defecto (1 al mes)')

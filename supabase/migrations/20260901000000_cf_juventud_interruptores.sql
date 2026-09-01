@@ -13,7 +13,20 @@
 -- hoy.
 -- ============================================================================
 
--- salon_config es clave/valor (id, key, value)
+-- salon_config es clave/valor (id, key, value).
+--
+-- Antes de insertar hay que resincronizar la secuencia del id: viene sembrada
+-- con ids explícitos y nunca avanzó, así que el primer insert intenta reusar un
+-- id existente y revienta con duplicate key. Es el mismo problema que tenía
+-- services_id_seq y que se corrigió en la migración de julio.
+-- setval es STRICT: si la tabla no tuviera secuencia, pg_get_serial_sequence
+-- devuelve null y esto no hace nada, en vez de fallar.
+select setval(
+  pg_get_serial_sequence('public.salon_config', 'id'),
+  coalesce((select max(id) from public.salon_config), 0) + 1,
+  false
+);
+
 insert into public.salon_config (key, value)
 select 'cf_monthly_limit', '1'
 where not exists (select 1 from public.salon_config where key = 'cf_monthly_limit');
