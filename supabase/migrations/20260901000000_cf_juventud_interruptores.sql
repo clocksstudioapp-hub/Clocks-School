@@ -65,10 +65,14 @@ begin
      and date_trunc('month', a.appointment_date) = date_trunc('month', new.appointment_date);
 
   if v_used >= v_limit then
-    raise exception 'MONTHLY_LIMIT'
-      using message = case when v_limit = 1
+    -- OJO: 'raise exception <texto> using message = ...' es ilegal en PostgreSQL
+    -- (no se puede dar el texto y MESSAGE a la vez) y es lo que hay hoy en
+    -- producción: el jugador ve "RAISE option already specified: MESSAGE" en vez
+    -- del aviso en español, porque la app muestra error.message tal cual.
+    raise exception '%', case when v_limit = 1
         then 'Ya has reservado tu corte gratis de este mes'
-        else 'Ya has agotado tus ' || v_limit || ' cortes gratis de este mes' end;
+        else 'Ya has agotado tus ' || v_limit || ' cortes gratis de este mes' end
+      using detail = 'MONTHLY_LIMIT';
   end if;
 
   return new;
