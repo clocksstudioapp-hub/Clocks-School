@@ -349,9 +349,15 @@ const CF_ORANGE='#F26A21', CF_ORANGE_D='#D9560F'
 const monthRange=d=>{const y=d.getFullYear(),m=d.getMonth();return[toK(new Date(y,m,1)),toK(new Date(y,m+1,0))]}
 
 function CFJuventudTab({user,profile,isA,cfService,cfTeams,onRes,status='loading'}) {
+  const [teamId,setTeamId]=useState(profile?.team_id||'')
   if(isA) return <CFJuventudAdminPanel cfService={cfService} cfTeams={cfTeams}/>
 
-  const team=cfTeams.find(t=>t.id===profile?.team_id)
+  // team_id no lo protege el guard anti-escalada y profiles_update deja editar
+  // la fila propia, así que el jugador puede corregirlo él mismo.
+  const changeMyTeam=async v=>{
+    setTeamId(v)
+    if(user)await supabase.from('profiles').update({team_id:v?Number(v):null}).eq('id',user.id)
+  }
 
   return <div>
     <div style={{maxWidth:340,margin:'0 auto',borderRadius:18,overflow:'hidden',boxShadow:'var(--shadow-md)'}}>
@@ -359,7 +365,10 @@ function CFJuventudTab({user,profile,isA,cfService,cfTeams,onRes,status='loading
       <div style={{background:'var(--white)',padding:'16px 18px',display:'flex',alignItems:'center',justifyContent:'space-between',gap:10}}>
         <div style={{minWidth:0}}>
           <div style={{fontSize:14,fontWeight:700,color:'var(--text)'}}>{profile?.full_name}</div>
-          <div style={{fontSize:12,color:'var(--text3)'}}>{team?.name||'—'}</div>
+          <select value={teamId||''} onChange={e=>changeMyTeam(e.target.value)} aria-label="Tu equipo" style={{fontSize:12,color:'var(--text3)',border:'1px solid var(--border)',borderRadius:7,padding:'2px 6px',marginTop:2,background:'var(--white)',fontFamily:'inherit',maxWidth:'100%'}}>
+            <option value="">— sin equipo —</option>
+            {cfTeams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
         </div>
         {status==='loading'
           ?<span style={{fontSize:12,color:'var(--text3)'}}>Cargando…</span>
@@ -388,6 +397,7 @@ function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
   const [teams,setTeams]=useState(initialTeams)
   const [ld,setLd]=useState(true)
   const [editTeam,setEditTeam]=useState(null)
+  const [revoke,setRevoke]=useState(null)
 
   const load=useCallback(async()=>{
     setLd(true)
@@ -411,6 +421,8 @@ function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
     setEditTeam(null);load()
   }
   const delTeam=async id=>{await supabase.from('cf_teams').delete().eq('id',id);load()}
+  const changeTeam=async(id,v)=>{await supabase.from('profiles').update({team_id:v?Number(v):null}).eq('id',id);load()}
+  const revokePlayer=async id=>{await supabase.from('profiles').update({role:'client',team_id:null}).eq('id',id);setRevoke(null);load()}
 
   const exportRows=()=>{
     const rows=players.map(p=>({Jugador:p.full_name||'—',Equipo:teams.find(t=>t.id===p.team_id)?.name||'—',Estado:redeemedIds.has(p.id)?'Usado este mes':'Disponible'}))
@@ -431,11 +443,15 @@ function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
       {players.map(p=><div key={p.id} style={{display:'flex',alignItems:'center',gap:10,padding:'12px 14px',background:'var(--white)',border:'1.5px solid var(--border)',borderRadius:12,boxShadow:'var(--shadow)'}}>
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontSize:13,fontWeight:600,color:'var(--text)'}}>{p.full_name||'Sin nombre'}</div>
-          <div style={{fontSize:11,color:'var(--text3)'}}>{teams.find(t=>t.id===p.team_id)?.name||'—'}</div>
+          <select value={p.team_id||''} onChange={e=>changeTeam(p.id,e.target.value)} style={{fontSize:11,color:'var(--text3)',border:'1px solid var(--border)',borderRadius:6,padding:'2px 5px',marginTop:2,background:'var(--white)',fontFamily:'inherit',maxWidth:'100%'}}>
+            <option value="">— sin equipo —</option>
+            {teams.map(t=><option key={t.id} value={t.id}>{t.name}</option>)}
+          </select>
         </div>
         {redeemedIds.has(p.id)
           ?<Bg color="var(--text3)" bg="rgba(156,163,175,0.15)">Usado</Bg>
           :<Bg color="var(--green)" bg="var(--green-bg)">Disponible</Bg>}
+        <button onClick={()=>setRevoke(p)} title="Dar de baja" style={{fontSize:11,color:'var(--red)',background:'var(--red-bg)',border:'1px solid rgba(239,68,68,0.12)',borderRadius:7,padding:'4px 8px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>Baja</button>
       </div>)}
     </div>
 
@@ -453,6 +469,16 @@ function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
     </div>
 
     {editTeam&&<CfTeamModal data={editTeam} onSave={saveTeam} onDelete={editTeam.id?()=>{delTeam(editTeam.id);setEditTeam(null)}:null} onClose={()=>setEditTeam(null)}/>}
+
+    {revoke&&<Modal>
+      <h3 style={{fontSize:18,fontWeight:800,marginBottom:12,color:'var(--text)'}}>¿Dar de baja a {revoke.full_name||'este jugador'}?</h3>
+      <p style={{fontSize:13,color:'var(--text2)',lineHeight:1.6,marginBottom:8}}>Dejará de ser jugador del club y perderá el corte gratis mensual. Su cuenta y su historial se mantienen: pasa a ser cliente normal.</p>
+      <p style={{fontSize:13,color:'var(--text3)',lineHeight:1.6,marginBottom:18}}>Si tiene un corte gratis ya reservado <b>no se cancela</b>. Y puede volver a darse de alta él mismo en /juventud, porque el alta es libre.</p>
+      <div style={{display:'flex',gap:10}}>
+        <button onClick={()=>setRevoke(null)} style={{flex:1,padding:12,fontSize:14,fontWeight:600,color:'var(--text)',background:'var(--bg)',border:'1.5px solid var(--border)',borderRadius:12,cursor:'pointer',fontFamily:'inherit'}}>Volver</button>
+        <button onClick={()=>revokePlayer(revoke.id)} style={{flex:1,padding:12,fontSize:14,fontWeight:700,color:'#fff',background:'var(--red)',border:'none',borderRadius:12,cursor:'pointer',fontFamily:'inherit'}}>Dar de baja</button>
+      </div>
+    </Modal>}
   </div>
 }
 
@@ -1373,7 +1399,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
   const loadDay=useCallback(async d=>{
     const dk=toK(d)
     const [{data:a},{data:b},{data:s},{data:v}]=await Promise.all([
-      supabase.from('appointments').select('*,stylists(name),services(name,price,duration)').eq('appointment_date',dk).order('appointment_time'),
+      supabase.from('appointments').select('*,stylists(name),services(name,price,duration,player_only)').eq('appointment_date',dk).order('appointment_time'),
       supabase.from('blocked_slots').select('*,stylists(name)').eq('blocked_date',dk).order('start_time'),
       supabase.from('stylists').select('*').order('display_order'),
       supabase.from('services').select('*').order('display_order'),
@@ -1539,6 +1565,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
               <div style={{fontSize:14,fontWeight:600,color:'var(--text)'}}>{prof?.full_name||'—'}</div>
               <div style={{fontSize:12,color:'var(--text3)',marginTop:1}}>{a.services?.name} · {a.stylists?.name}</div>
               {prof?.phone&&<div style={{fontSize:11,color:'var(--text3)'}}>📞 {prof.phone}</div>}
+              {a.services?.player_only&&<div style={{fontSize:11,fontWeight:700,color:CF_ORANGE,marginTop:3}}>⚽ Corte del club — pide el carnet</div>}
             </div>
             <Bg color={s.c} bg={s.bg}>{s.l}</Bg>
             {a.status==='confirmed'&&<button onClick={()=>setCancelConfirm({id:a.id,name:prof?.full_name||'—',service:a.services?.name,time:a.appointment_time?.slice(0,5)})} style={{fontSize:11,color:'var(--red)',background:'var(--red-bg)',border:'1px solid rgba(239,68,68,0.12)',borderRadius:8,padding:'5px 8px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>✕</button>}
