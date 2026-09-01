@@ -1774,7 +1774,7 @@ export default function App() {
   const [landingTab,setLandingTab]=useState(undefined) // pestaña inicial de Landing, solo para el flujo /juventud
 
   const loadPublic=async()=>{
-    const [{data:sv},{data:st},{data:sc},{data:ss},{data:cl},{data:tm},{data:cfsv}]=await Promise.all([
+    const[{data:sv},{data:st},{data:sc},{data:ss},{data:cl},{data:tm},{data:cfsv},{data:cfCfg}]=await Promise.all([
       supabase.from('services').select('*').eq('active',true).eq('player_only',false).order('display_order'),
       supabase.from('stylists').select('*').eq('active',true).order('display_order'),
       supabase.from('salon_config').select('*').limit(1).maybeSingle(),
@@ -1782,8 +1782,15 @@ export default function App() {
       supabase.from('salon_closures').select('start_date,end_date,reason'),
       supabase.from('cf_teams').select('*').eq('active',true).order('display_order'),
       supabase.from('services').select('*').eq('active',true).eq('player_only',true).maybeSingle(),
+      supabase.from('salon_config').select('key,value').in('key',['cf_open_to_all','cf_monthly_limit']),
     ])
-    setSvcs(sv||[]);setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[]);setSalonClosures(cl||[])
+    const cfg={};(cfCfg||[]).forEach(r=>{cfg[r.key]=r.value})
+    const openToAll=String(cfg.cf_open_to_all).toLowerCase()==='true'
+    // Con el interruptor abierto el corte del club entra en el catálogo público,
+    // así que lo puede reservar cualquiera. Es intencionado: más citas, más
+    // maniquíes para los alumnos.
+    setSvcs(openToAll&&cfsv?[...(sv||[]),cfsv]:(sv||[]))
+    setStys(st||[]);setSalonConfig(sc||null);setSalonSchedule(ss||[]);setSalonClosures(cl||[])
     setCfTeams(tm||[]);setCfService(cfsv||null)
   }
 
