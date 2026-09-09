@@ -755,14 +755,15 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[],clos
         const sal=salonSchedule.find(s=>s.day_of_week===d.getDay())
         const closed=(sal&&!sal.active)||closures.some(c=>c.start_date<=toK(d)&&toK(d)<=c.end_date)
         if(closed){avail[toK(d)]='none';continue}
-        const maxFree=Math.max(...stys.map(s=>getSlotsForDay(d,s.id,schedules,(bd||[]),(bl||[]),
+        const paraMes=sty?stys.filter(s=>s.id===sty.id):stys
+        const maxFree=Math.max(0,...paraMes.map(s=>getSlotsForDay(d,s.id,schedules,(bd||[]),(bl||[]),
           alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).length))
        const free=maxFree
         avail[toK(d)]=free>10?'green':free>5?'yellow':free>0?'orange':'none'
       }
       setMonthAvail(avail)
     })()
-  },[cM,cY,stys,schedules,svc,timeOff,closures,overrides])
+  },[cM,cY,stys,sty,schedules,svc,timeOff,closures,overrides])
 
   // Barbero favorito
   useEffect(()=>{
@@ -781,7 +782,12 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[],clos
 ])
 const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides))
 const userTaken=new Set();(mine||[]).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
-const unionSlots=[...new Set(allSlotSets.flat())].filter(s=>!userTaken.has(s)).sort()
+// Con barbero ya elegido hay que ofrecer SUS horas, no la unión de todos: si no,
+// a un barbero de tarde se le podían reservar las 10:00 porque otro de mañana
+// las tenía libres, y al confirmar se insertaba igual.
+const iSty=sty?stys.findIndex(s=>s.id===sty.id):-1
+const base=iSty>=0?(allSlotSets[iSty]||[]):[...new Set(allSlotSets.flat())]
+const unionSlots=base.filter(s=>!userTaken.has(s)).sort()
 setDayData({bd:bd||[],bl:bl||[]})
 setSlots(unionSlots)
       setSL(false)
