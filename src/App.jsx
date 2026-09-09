@@ -757,7 +757,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[],clos
         if(closed){avail[toK(d)]='none';continue}
         const paraMes=sty?stys.filter(s=>s.id===sty.id):stys
         const maxFree=Math.max(0,...paraMes.map(s=>getSlotsForDay(d,s.id,schedules,(bd||[]),(bl||[]),
-          alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).length))
+          alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides,s.shift).length))
        const free=maxFree
         avail[toK(d)]=free>10?'green':free>5?'yellow':free>0?'orange':'none'
       }
@@ -780,7 +780,7 @@ function Booking({user,profile,svcs,stys,pre,onDone,onBack,salonSchedule=[],clos
   supabase.from('blocked_slots').select('start_time,end_time,stylist_id,blocked_date').eq('blocked_date',dk),
   supabase.from('appointments').select('appointment_time,end_time').eq('appointment_date',dk).eq('user_id',user.id).eq('status','confirmed'),
 ])
-const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides))
+const allSlotSets=stys.map(s=>getSlotsForDay(date,s.id,schedules,bd||[],bl||[],alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides,s.shift))
 const userTaken=new Set();(mine||[]).forEach(a=>{let c=a.appointment_time.slice(0,5);const e=a.end_time.slice(0,5);while(c<e){userTaken.add(c);c=aM(c,30)}})
 // Con barbero ya elegido hay que ofrecer SUS horas, no la unión de todos: si no,
 // a un barbero de tarde se le podían reservar las 10:00 porque otro de mañana
@@ -832,7 +832,7 @@ setSlots(unionSlots)
     {step===2&&<div style={{background:'var(--white)',padding:20}}>
       <h2 style={{fontSize:18,fontWeight:800,marginBottom:18,color:'var(--text)'}}>Elige profesional</h2>
       <div style={{display:'flex',gap:12,overflowX:'auto',paddingBottom:6}}>
-        {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
+        {(time?stys.filter(s=>getSlotsForDay(date,s.id,schedules,dayData.bd,dayData.bl,alvaroEffDur(s,svc),salonSchedule,30,timeOff,closures,overrides,s.shift).includes(time)):stys).map(s=>{const sl=sty?.id===s.id;return<button key={s.id} onClick={()=>setSty(s)} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,minWidth:80,background:'none',border:'none',cursor:'pointer',padding:'8px 4px',flexShrink:0}}>
           <div style={{width:64,height:64,borderRadius:32,background:'var(--purple-bg2)',border:sl?'3px solid var(--purple)':'2px solid var(--border)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:22,fontWeight:700,color:'var(--purple)',overflow:'hidden',transition:'all .2s',boxShadow:sl?'0 4px 16px rgba(105,107,198,0.32)':'none'}}>
             {s.photo_url?<img src={s.photo_url} alt={s.name} style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>:s.name[0]}
           </div>

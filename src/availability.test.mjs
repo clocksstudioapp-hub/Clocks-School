@@ -104,3 +104,39 @@ test('override de OTRA fecha no afecta a este día', () => {
   const overrides = [{ stylist_id: 1, override_date: '2026-07-20', active: false, start_time: '09:00', end_time: '13:00' }]
   assert.ok(getSlotsForDay(monday, 1, recurring, [], [], 30, salon, 30, [], [], overrides).length > 0)
 })
+
+// ── Turno de la ficha como fuente de verdad ────────────────────
+// Salón partido: mañana 10-14, tarde 16-20. El turno del profesional decide
+// qué mitad se ofrece cuando no tiene horario propio para ese día.
+const salonPartido = [{ day_of_week: 1, active: true, open_time: '10:00', close_time: '20:00', break_start: '14:00', break_end: '16:00' }]
+
+test('TT sin horario propio: solo tarde', () => {
+  const slots = getSlotsForDay(monday, 1, [], [], [], 30, salonPartido, 30, [], [], [], 'TT')
+  assert.ok(!slots.includes('10:00'), 'no debe ofrecer la mañana')
+  assert.ok(slots.includes('16:00') && slots.includes('19:30'))
+})
+
+test('TM sin horario propio: solo mañana', () => {
+  const slots = getSlotsForDay(monday, 1, [], [], [], 30, salonPartido, 30, [], [], [], 'TM')
+  assert.ok(slots.includes('10:00') && slots.includes('13:30'))
+  assert.ok(!slots.includes('16:00'), 'no debe ofrecer la tarde')
+})
+
+test('ambos (o sin turno): jornada completa menos el descanso', () => {
+  const slots = getSlotsForDay(monday, 1, [], [], [], 30, salonPartido, 30, [], [], [], 'ambos')
+  assert.ok(slots.includes('10:00') && slots.includes('16:00'))
+  assert.ok(!slots.includes('14:00'), 'el descanso del salón sigue excluido')
+})
+
+test('el horario del día es una excepción y gana al turno de la ficha', () => {
+  const propio = [{ stylist_id: 1, day_of_week: 1, active: true, start_time: '16:00', end_time: '18:00', break_start: null, break_end: null }]
+  const slots = getSlotsForDay(monday, 1, propio, [], [], 30, salonPartido, 30, [], [], [], 'TM')
+  assert.ok(slots.includes('16:00') && slots.includes('17:30'))
+  assert.ok(!slots.includes('10:00'), 'la excepción manda sobre TM')
+  assert.ok(!slots.includes('18:00'))
+})
+
+test('sin descanso en el salón, el turno no puede partir el día', () => {
+  const slots = getSlotsForDay(monday, 1, [], [], [], 30, salon, 30, [], [], [], 'TT')
+  assert.deepEqual(slots, ['09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30'])
+})

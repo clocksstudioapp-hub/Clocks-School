@@ -3,11 +3,12 @@ import { toK, aM, gS } from './timeUtils.js'
 // Dado un barbero y una fecha, calcula sus slots libres teniendo en cuenta:
 // - cierres del salón (festivos) que cubran la fecha
 // - horario del salón por día de semana (salon_schedule)
-// - horario semanal fijo del barbero (stylist_schedules) con su break
+// - turno del barbero (stylists.shift: TM/TT) — la fuente de verdad
+// - horario semanal fijo del barbero (stylist_schedules), como excepción por día
 // - break del salón
 // - citas y bloqueos puntuales
 // - ausencias del barbero (time_off): todo el día o por franja
-export const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, svcDuration, salonSchedule=[], slotMinutes=30, timeOff=[], closures=[], overrides=[]) => {
+export const getSlotsForDay = (date, stylistId, schedules, appointments, blockedSlots, svcDuration, salonSchedule=[], slotMinutes=30, timeOff=[], closures=[], overrides=[], stylistShift=null) => {
   const dow = date.getDay()
   const dk = toK(date)
 
@@ -20,8 +21,18 @@ export const getSlotsForDay = (date, stylistId, schedules, appointments, blocked
   // Horario fijo del barbero para este día de semana
   // Excepción de turno por fecha (schedule_overrides) manda sobre el recurrente
   const override = overrides.find(o => o.stylist_id === stylistId && o.override_date === dk)
-  const sched = override || schedules.find(s => s.stylist_id === stylistId && s.day_of_week === dow)
-  if(sched && !sched.active) return []
+  const propio = override || schedules.find(s => s.stylist_id === stylistId && s.day_of_week === dow)
+  if(propio && !propio.active) return []
+
+  // Sin horario propio para ese día manda el turno de su ficha, que es la fuente
+  // de verdad: TM va de la apertura al descanso del salón y TT del descanso al
+  // cierre. Los horarios por día son sólo excepciones encima de esto.
+  const porTurno = (!propio && (stylistShift === 'TM' || stylistShift === 'TT') && salSched && salSched.break_start && salSched.break_end)
+    ? (stylistShift === 'TM'
+        ? { start_time: salSched.open_time, end_time: salSched.break_start }
+        : { start_time: salSched.break_end, end_time: salSched.close_time })
+    : null
+  const sched = propio || porTurno
 
   // Horario efectivo: barbero > salón > fallback
   const dayOpen = sched ? sched.start_time.slice(0,5) : (salSched ? salSched.open_time.slice(0,5) : '09:00')
