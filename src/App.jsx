@@ -537,7 +537,7 @@ function ResetPasswordForm({onDone}) {
 }
 
 // ═══ AUTH ═════════════════════════════════════════════════════════════════════
-function Auth({onLogin,onBack}) {
+function Auth({onLogin,onBack,onPlayer}) {
   const [m,setM]=useState('login'),[em,setEm]=useState(''),[pw,setPw]=useState(''),[nm,setNm]=useState(''),[ph,setPh]=useState(''),[ld,setLd]=useState(false),[er,setEr]=useState('')
   const [logoOk,setLogoOk]=useState(true)
   const [resetSent,setResetSent]=useState(false)
@@ -610,6 +610,14 @@ function Auth({onLogin,onBack}) {
           {m==='login'?'Regístrate':'Inicia sesión'}
         </button>
       </p>
+      {onPlayer&&<button onClick={onPlayer} style={{fontFamily:'inherit',width:'100%',display:'flex',alignItems:'center',gap:12,marginTop:22,padding:'12px 14px',background:'var(--white)',border:'1.5px solid rgba(242,106,33,0.35)',borderRadius:12,cursor:'pointer',textAlign:'left'}}>
+        <img src="/images/logo-juventud.png" alt="" style={{height:40,width:'auto',flexShrink:0}}/>
+        <span style={{flex:1}}>
+          <span style={{display:'block',fontSize:14,fontWeight:800,color:'var(--text)'}}>¿Juegas en el CF Juventud?</span>
+          <span style={{display:'block',fontSize:12,color:'var(--text3)',marginTop:2}}>Crea tu cuenta de jugador y reserva tu corte gratis mensual</span>
+        </span>
+        <span style={{fontSize:18,fontWeight:700,color:'#F26A21'}}>›</span>
+      </button>}
     </div>
     {showPrivacy&&<Modal>
       <h3 style={{fontSize:18,fontWeight:800,marginBottom:14,color:'var(--text)'}}>Política de privacidad</h3>
@@ -631,7 +639,7 @@ function Auth({onLogin,onBack}) {
 // Sin código de acceso: el jugador se autodeclara y elige su equipo. El
 // barbero verifica en persona con el carnet físico del club antes de aplicar
 // el corte gratis (decisión de negocio documentada en la spec).
-function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
+function PlayerOnboarding({user,profile,teams,onDone,onLogin,onBack}) {
   const isActivateMode = !!user && profile?.role==='client'
   const [teamId,setTeamId]=useState(teams[0]?.id||'')
   const [nm,setNm]=useState(''),[em,setEm]=useState(''),[pw,setPw]=useState(''),[ph,setPh]=useState('')
@@ -688,6 +696,7 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin}) {
   if(user&&esStaffOJugador)return <Sp/>
 
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--white)'}}>
+    {onBack&&<div style={{padding:'12px 20px 0'}}><BB onClick={onBack} label="Volver"/></div>}
     <div style={{padding:'32px 28px 26px',textAlign:'center'}}>
       <img src="/images/logo-juventud.png" alt="C.F. Santo Domingo Juventud" style={{height:80,width:'auto',margin:'0 auto 16px',display:'block'}}/>
       <h1 style={{fontSize:22,fontWeight:900,marginBottom:6,letterSpacing:-1,color:'var(--text)'}}>Tarjeta CF Juventud</h1>
@@ -1796,6 +1805,7 @@ export default function App() {
   const [cfTeams,setCfTeams]=useState([])
   const [cfService,setCfService]=useState(null)
   const [landingTab,setLandingTab]=useState(undefined) // pestaña inicial de Landing, solo para el flujo /juventud
+  const [playerFromAuth,setPlayerFromAuth]=useState(false) // el alta de jugador se abrió desde el login: muestra "Volver"
 
   const loadPublic=async()=>{
     const[{data:sv},{data:st},{data:sc},{data:ss},{data:cl},{data:tm},{data:cfsv}]=await Promise.all([
@@ -1859,7 +1869,7 @@ export default function App() {
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
     {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} profile={profile} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures} cfTeams={cfTeams} cfService={cfService} initialTab={landingTab}/>}
-    {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')}/>}
+    {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')} onPlayer={()=>{setPlayerFromAuth(true);setView('player-onboarding')}}/>}
     {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule} closures={salonClosures}/>}
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
@@ -1869,6 +1879,6 @@ export default function App() {
       const{data:{user:u}}=await supabase.auth.getUser()
       if(u)await lP(u.id)
       setLandingTab('juventud');setView('landing')
-    }} onLogin={async u=>{setUser(u);await lP(u.id)}}/>}
+    }} onLogin={async u=>{setUser(u);await lP(u.id)}} onBack={playerFromAuth&&!user?()=>{setPlayerFromAuth(false);setView('auth')}:undefined}/>}
   </div>
 }
