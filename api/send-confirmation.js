@@ -54,11 +54,11 @@ export default async function handler(req, res) {
       return res.status(404).json({ ok: false, error: 'Cita no encontrada' })
     }
 
-    // Debe ser el dueño de la cita o personal (admin/barber).
+    // Debe ser el dueño de la cita o personal (admin/barber/teacher).
     if (appt.user_id !== caller.id) {
       const { data: prof } = await supabase
         .from('profiles').select('role').eq('id', caller.id).single()
-      if (!prof || !['admin', 'barber'].includes(prof.role)) {
+      if (!prof || !['admin', 'barber', 'teacher'].includes(prof.role)) {
         return res.status(403).json({ ok: false, error: 'forbidden' })
       }
     }

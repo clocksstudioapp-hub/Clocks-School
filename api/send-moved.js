@@ -39,7 +39,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: 'Method not allowed' })
   }
 
-  // ── Auth gate: solo personal (admin/barber) puede mover citas y notificar.
+  // ── Auth gate: solo personal (admin/barber/teacher) puede mover citas y notificar.
   const token = (req.headers['authorization'] || '').replace(/^Bearer\s+/i, '')
   if (!token) return res.status(401).json({ ok: false, error: 'unauthorized' })
   const { data: authData, error: authErr } = await supabase.auth.getUser(token)
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   if (authErr || !caller) return res.status(401).json({ ok: false, error: 'unauthorized' })
   const { data: callerProf } = await supabase
     .from('profiles').select('role').eq('id', caller.id).single()
-  if (!callerProf || !['admin', 'barber'].includes(callerProf.role)) {
+  if (!callerProf || !['admin', 'barber', 'teacher'].includes(callerProf.role)) {
     return res.status(403).json({ ok: false, error: 'forbidden' })
   }
 
