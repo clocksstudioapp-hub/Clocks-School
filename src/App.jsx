@@ -199,7 +199,7 @@ function SvcCard({s,sel,onClick,i,bookBtn}) {
   </div>
 }
 // ═══ LANDING ══════════════════════════════════════════════════════════════════
-function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[],cfTeams=[],cfService=null,initialTab}) {
+function Landing({svcs,stys,user,profile,isA,isTeacher=false,isBarber,onRes,onLog,onAcc,onAdm,onBar,salonConfig,salonSchedule=[],closures=[],cfTeams=[],cfService=null,initialTab}) {
   const [hi,setHi]=useState(0)
   const [logoOk,setLogoOk]=useState(true)
   const [tab,setTab]=useState(initialTab||'servicios')
@@ -255,7 +255,7 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--purple)" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       </button>}
       <div style={{position:'absolute',top:14,right:14,zIndex:3,display:'flex',gap:8}}>
-        {isA&&<button onClick={onAdm} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:700,fontFamily:'inherit',color:'var(--purple)'}}>⚙ Admin</button>}
+        {(isA||isTeacher)&&<button onClick={onAdm} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:700,fontFamily:'inherit',color:'var(--purple)'}}>⚙ Admin</button>}
         {isBarber&&!isA&&<button onClick={onBar} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:700,fontFamily:'inherit',color:'var(--purple)'}}>✂️ Mi panel</button>}
         {!user&&<button onClick={onLog} style={{height:36,borderRadius:18,background:'rgba(255,255,255,0.92)',border:'none',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',boxShadow:'0 2px 10px rgba(0,0,0,0.15)',padding:'0 14px',fontSize:12,fontWeight:600,fontFamily:'inherit',color:'var(--text)'}}>Iniciar sesión</button>}
       </div>
@@ -278,7 +278,7 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
     </div>
 
     <div style={{display:'flex',background:'var(--white)',borderBottom:'1px solid var(--border)',padding:'0 20px',overflowX:'auto'}}>
-      {[['servicios','SERVICIOS'],['equipo','EQUIPO'],['portafolio','PORTAFOLIO'],['detalles','DETALLES'],...(isPlayer||isA?[['juventud','CF JUVENTUD']]:[])].map(([id,lbl])=>
+      {[['servicios','SERVICIOS'],['equipo','EQUIPO'],['portafolio','PORTAFOLIO'],['detalles','DETALLES'],...(isPlayer||isA||isTeacher?[['juventud','CF JUVENTUD']]:[])].map(([id,lbl])=>
         <button key={id} onClick={()=>setTab(id)} style={{padding:'14px 0',marginRight:24,fontSize:11,fontWeight:700,letterSpacing:'0.07em',color:tab===id?'var(--purple)':'var(--text3)',borderBottom:tab===id?'2.5px solid var(--purple)':'2.5px solid transparent',background:'none',border:'none',cursor:'pointer',whiteSpace:'nowrap',fontFamily:'inherit'}}>{lbl}</button>
       )}
     </div>
@@ -331,8 +331,9 @@ function Landing({svcs,stys,user,profile,isA,isBarber,onRes,onLog,onAcc,onAdm,on
       })()}
     </div>}
 
-    {tab==='juventud'&&(isPlayer||isA)&&<div style={{padding:16}}>
-      <CFJuventudTab user={user} profile={profile} isA={isA} cfService={cfService} cfTeams={cfTeams} onRes={onRes} status={cfStatus}/>
+    {tab==='juventud'&&(isPlayer||isA||isTeacher)&&<div style={{padding:16}}>
+      {/* El profesor gestiona el club igual que el admin (RLS: is_manager). */}
+      <CFJuventudTab user={user} profile={profile} isA={isA||isTeacher} cfService={cfService} cfTeams={cfTeams} onRes={onRes} status={cfStatus}/>
     </div>}
 
     <div style={{position:'fixed',bottom:0,left:'50%',transform:'translateX(-50%)',width:'100%',maxWidth:480,background:'rgba(255,255,255,0.94)',backdropFilter:'blur(14px)',borderTop:'1px solid var(--border)',padding:'12px 20px 18px',zIndex:50}}>
@@ -421,7 +422,12 @@ function CFJuventudAdminPanel({cfService,cfTeams:initialTeams}) {
     setEditTeam(null);load()
   }
   const delTeam=async id=>{await supabase.from('cf_teams').delete().eq('id',id);load()}
-  const changeTeam=async(id,v)=>{await supabase.from('profiles').update({team_id:v?Number(v):null}).eq('id',id);load()}
+  // Por RPC y no con update directo: el profesor no puede editar perfiles ajenos.
+  const changeTeam=async(id,v)=>{
+    const{error}=await supabase.rpc('cf_cambiar_equipo',{p_profile:id,p_team:v?Number(v):null})
+    if(error)alert('No se pudo cambiar el equipo: '+error.message)
+    load()
+  }
   const revokePlayer=async id=>{await supabase.from('profiles').update({role:'client',team_id:null}).eq('id',id);setRevoke(null);load()}
 
   const exportRows=()=>{
@@ -658,7 +664,7 @@ function PlayerOnboarding({user,profile,teams,onDone,onLogin,onBack}) {
   // que onDone recarga el perfil, dispararía una petición por cada render.
   const yaSalio=useRef(false)
   const salir=async()=>{ if(yaSalio.current)return; yaSalio.current=true; await onDone() }
-  const esStaffOJugador=['player','admin','barber'].includes(profile?.role)
+  const esStaffOJugador=['player','admin','barber','teacher'].includes(profile?.role)
   useEffect(()=>{ if(user&&esStaffOJugador)salir() },[user,esStaffOJugador])
 
   const activate=async()=>{
@@ -1374,8 +1380,10 @@ function MyAbsenceModal({onSubmit,onClose}) {
 }
 
 // ═══ ADMIN ════════════════════════════════════════════════════════════════════
-function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barberStylistId=null}) {
+function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barberStylistId=null,soloOperativa=false}) {
   const isBarberMode=!!barberStylistId
+  // soloOperativa = profesor: agenda de todos sí; Equipo (fichas) y Servicios
+  // (precios) no, igual que en clocks-admin.
   const LS_KEY='clocks-admin-stylist'
   const [myStylistId,setMyStylistId]=useState(()=>{
     if(barberStylistId)return barberStylistId
@@ -1545,7 +1553,9 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
     <div style={{display:'flex',background:'var(--white)',borderBottom:'1px solid var(--border)',padding:'0 16px',overflowX:'auto'}}>
       {(isBarberMode
         ?[['cal','📅 Calendario'],['horario','🕐 Mi horario'],['bloqueos','🚫 Mis bloqueos'],['ausencias','🌴 Mis ausencias']]
-        :[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['compartir','🔗 Compartir']]
+        :soloOperativa
+          ?[['cal','📅 Calendario'],['compartir','🔗 Compartir']]
+          :[['cal','📅 Calendario'],['team','👤 Equipo'],['svc','✂️ Servicios'],['compartir','🔗 Compartir']]
       ).map(([id,l])=>
         <button key={id} onClick={()=>setTab(id)} style={{padding:'13px 12px',fontFamily:'inherit',fontSize:12,fontWeight:600,background:'none',border:'none',cursor:'pointer',color:tab===id?'var(--purple)':'var(--text3)',borderBottom:tab===id?'2.5px solid var(--purple)':'2.5px solid transparent',whiteSpace:'nowrap'}}>{l}</button>
       )}
@@ -1639,7 +1649,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
       </div>}
 
       {/* ── EQUIPO ── */}
-      {tab==='team'&&<div>
+      {tab==='team'&&!soloOperativa&&<div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
           <h2 style={{fontSize:18,fontWeight:800,color:'var(--text)'}}>Equipo</h2>
           <Bt small onClick={()=>setEditSty({name:'',username:'',role_title:'Barbero',photo_url:'',active:true})}>+ Añadir</Bt>
@@ -1672,7 +1682,7 @@ function Admin({user,onBack,onDataChanged,salonConfig,onSalonConfigChanged,barbe
       </div>}
 
       {/* ── SERVICIOS ── */}
-      {tab==='svc'&&<div>
+      {tab==='svc'&&!soloOperativa&&<div>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
           <h2 style={{fontSize:18,fontWeight:800,color:'var(--text)'}}>Servicios</h2>
           <Bt small onClick={()=>setEditSvc({name:'',description:'',duration:30,price:0,category:'popular'})}>+ Añadir</Bt>
@@ -1840,10 +1850,10 @@ export default function App() {
       if(session?.user){
         setUser(session.user);subscribePush(session.user.id)
         const prof=await lP(session.user.id)
-        if(isJuventudPath&&!['player','admin','barber'].includes(prof?.role)){setView('player-onboarding');return}
+        if(isJuventudPath&&!['player','admin','barber','teacher'].includes(prof?.role)){setView('player-onboarding');return}
         // La pestaña CF Juventud solo existe para player/admin (ver Landing); un
         // barber que llegue por /juventud va a landing normal, sin forzar la pestaña.
-        if(isJuventudPath&&['player','admin'].includes(prof?.role)){setLandingTab('juventud')}
+        if(isJuventudPath&&['player','admin','teacher'].includes(prof?.role)){setLandingTab('juventud')}
         setView('landing');return
       }
       setView(isJuventudPath?'player-onboarding':'landing')
@@ -1857,6 +1867,7 @@ export default function App() {
   const hR=s=>{setPs(s);if(user)setView('booking');else setView('auth')}
   const isA=profile?.role==='admin'
   const isBarber=profile?.role==='barber'
+  const isTeacher=profile?.role==='teacher'
 
   const reloadSalonConfig=async()=>{
     const{data}=await supabase.from('salon_config').select('key,value')
@@ -1868,12 +1879,12 @@ export default function App() {
   return <div style={{maxWidth:480,margin:'0 auto',minHeight:'100vh',background:'var(--bg)',boxShadow:'0 0 60px rgba(83,85,159,0.06)'}}>
     <style>{CSS}</style>
     {view==='recovery'&&<ResetPasswordForm onDone={()=>setView('landing')}/>}
-    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} profile={profile} isA={isA} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures} cfTeams={cfTeams} cfService={cfService} initialTab={landingTab}/>}
+    {view==='landing'&&<Landing svcs={svcs} stys={stys} user={user} profile={profile} isA={isA} isTeacher={isTeacher} isBarber={isBarber} onRes={hR} onLog={()=>setView('auth')} onAcc={()=>setView('account')} onAdm={()=>setView('admin')} onBar={()=>setView('barber')} salonConfig={salonConfig} salonSchedule={salonSchedule} closures={salonClosures} cfTeams={cfTeams} cfService={cfService} initialTab={landingTab}/>}
     {view==='auth'&&<Auth onLogin={hL} onBack={()=>setView('landing')} onPlayer={()=>{setPlayerFromAuth(true);setView('player-onboarding')}}/>}
     {view==='booking'&&user&&<Booking user={user} profile={profile} svcs={svcs} stys={stys} pre={ps} onDone={b=>{setLb(b);setView('done')}} onBack={()=>setView('landing')} salonSchedule={salonSchedule} closures={salonClosures}/>}
     {view==='account'&&user&&<Account user={user} profile={profile} stys={stys} onBook={()=>{setPs(null);setView('booking')}} onLogout={hO} onBack={()=>setView('landing')} onUp={setProfile}/>}
     {view==='done'&&lb&&<Done bk={lb} onR={()=>setView('landing')}/>}
-    {view==='admin'&&user&&isA&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig}/>}
+    {view==='admin'&&user&&(isA||isTeacher)&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig} soloOperativa={isTeacher}/>}
     {view==='barber'&&user&&isBarber&&<Admin user={user} onBack={()=>setView('landing')} onDataChanged={loadPublic} salonConfig={salonConfig} onSalonConfigChanged={reloadSalonConfig} barberStylistId={profile?.stylist_id}/>}
     {view==='player-onboarding'&&<PlayerOnboarding user={user} profile={profile} teams={cfTeams} onDone={async()=>{
       const{data:{user:u}}=await supabase.auth.getUser()
